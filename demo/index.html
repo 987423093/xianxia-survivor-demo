@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>云栖修真录 Demo</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="game-shell">
+      <canvas id="game" aria-label="云栖修真录游戏画面"></canvas>
+      <section class="hud top">
+        <div class="brand">
+          <strong>云栖修真录</strong>
+          <span id="timer">00:00</span>
+        </div>
+        <div class="stats">
+          <span id="level">炼气 1层</span>
+          <span id="kills">斩妖 0</span>
+          <span id="weapon">飞剑诀 1重</span>
+          <button id="homeBtn" class="icon-btn home-btn" type="button" aria-label="洞府">洞府</button>
+          <button id="pauseBtn" class="icon-btn" type="button" aria-label="暂停">暂停</button>
+        </div>
+      </section>
+      <section class="hud bottom">
+        <div id="bossHud" class="boss hidden">
+          <strong id="bossName">天劫雷主</strong>
+          <div class="bar boss-bar"><span id="bossBar"></span></div>
+        </div>
+        <div class="status-panel">
+          <label><span id="hpLabel">气血</span><div class="bar hp"><span id="hpBar"></span></div></label>
+          <label><span id="energyLabel">灵力</span><div class="bar energy"><span id="energyBar"></span></div></label>
+          <label><span id="xpLabel">修为</span><div class="bar xp"><span id="xpBar"></span></div></label>
+          <small id="equipmentSummary">未着法器</small>
+        </div>
+      </section>
+      <div id="pausePanel" class="overlay hidden">
+        <div class="dialog compact">
+          <h1>暂停中</h1>
+          <button id="resumeBtn" type="button">继续割草</button>
+          <button id="quickRestartBtn" type="button">重新开始</button>
+        </div>
+      </div>
+      <div id="upgradePanel" class="overlay hidden">
+        <div class="dialog">
+          <h1>突破机缘</h1>
+          <p>择一机缘，继续修行</p>
+          <div id="upgradeChoices" class="choices"></div>
+        </div>
+      </div>
+      <div id="resultPanel" class="overlay hidden">
+        <div class="dialog">
+          <h1>本次问道结算</h1>
+          <p id="resultText"></p>
+          <div id="rewardText" class="reward-text"></div>
+          <button id="restartBtn" type="button">再入洞府</button>
+        </div>
+      </div>
+      <div id="homePanel" class="overlay home hidden">
+        <div class="home-shell">
+          <header class="home-header">
+            <div>
+              <h1>云栖洞府</h1>
+              <p id="homeSubtitle">择章问道，携宝入世。</p>
+            </div>
+            <div id="metaCurrencies" class="meta-currencies"></div>
+          </header>
+          <nav id="homeTabs" class="home-tabs" aria-label="洞府页签">
+            <button data-tab="chapters" type="button">章节</button>
+            <button data-tab="start" type="button">开局</button>
+            <button data-tab="talents" type="button">天赋</button>
+            <button data-tab="artifacts" type="button">法宝</button>
+            <button data-tab="cultivation" type="button">功法</button>
+            <button data-tab="facilities" type="button">洞府</button>
+          </nav>
+          <section id="homeContent" class="home-content"></section>
+          <footer class="home-actions">
+            <button id="startRunBtn" type="button">入世斩妖</button>
+            <button id="closeHomeBtn" type="button">返回战斗</button>
+          </footer>
+        </div>
+      </div>
+      <div class="hint">
+        WASD / 方向键移动，移动端拖动左下角摇杆区域，P / Esc 入定
+      </div>
+    </main>
+    <script>
+      window.addEventListener("error", (event) => {
+        document.body.dataset.lastError = event.message;
+      });
+      window.addEventListener("unhandledrejection", (event) => {
+        document.body.dataset.lastError = String(event.reason);
+      });
+    </script>
+    <script type="module" src="./src/main.js"></script>
+  </body>
+</html>

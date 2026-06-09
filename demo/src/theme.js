@@ -1,0 +1,970 @@
+export const officeTheme = {
+  name: "打工人割草老板",
+  player: {
+    maxHp: 120,
+    speed: 245,
+    radius: 17,
+    pickupRadius: 86,
+    color: "#ffce5c",
+    tieColor: "#3468ff",
+  },
+  weapons: {
+    keyboard: {
+      id: "keyboard",
+      name: "键盘冲击",
+      level: 1,
+      damage: 20,
+      cooldown: 0.5,
+      range: 260,
+      projectileSpeed: 560,
+      projectileRadius: 7,
+      burst: 1,
+      color: "#f6f1d2",
+    },
+    coffee: {
+      id: "coffee",
+      name: "咖啡环流",
+      level: 0,
+      damage: 12,
+      cooldown: 0.85,
+      range: 118,
+      radius: 72,
+      color: "#9ef0c2",
+      unlocked: false,
+    },
+    invoice: {
+      id: "invoice",
+      name: "报销飞票",
+      level: 0,
+      damage: 14,
+      cooldown: 1.1,
+      range: 320,
+      projectileSpeed: 420,
+      projectileRadius: 6,
+      burst: 3,
+      color: "#64d5ff",
+      unlocked: false,
+    },
+  },
+  enemies: {
+    manager: {
+      name: "暴躁主管",
+      hp: 34,
+      speed: 78,
+      damage: 12,
+      radius: 16,
+      xp: 12,
+      color: "#ef5d5d",
+    },
+    director: {
+      name: "绩效总监",
+      hp: 82,
+      speed: 58,
+      damage: 18,
+      radius: 21,
+      xp: 28,
+      color: "#9d6dff",
+    },
+    boss: {
+      name: "加班老板",
+      hp: 260,
+      speed: 42,
+      damage: 28,
+      radius: 34,
+      xp: 96,
+      color: "#ff8f38",
+    },
+  },
+  waves: [
+    { at: 0, type: "manager", rate: 1.05, cap: 20 },
+    { at: 22, type: "manager", rate: 0.68, cap: 36 },
+    { at: 36, type: "director", rate: 2.1, cap: 12 },
+    { at: 60, type: "boss", rate: 999, cap: 1, once: true },
+    { at: 74, type: "manager", rate: 0.42, cap: 54 },
+    { at: 95, type: "director", rate: 1.3, cap: 20 },
+  ],
+  upgrades: [
+    {
+      id: "damage",
+      title: "键盘冒火",
+      desc: "键盘冲击伤害 +9",
+      apply(game) {
+        game.weapons.keyboard.damage += 9;
+      },
+    },
+    {
+      id: "cooldown",
+      title: "摸鱼手速",
+      desc: "攻击间隔缩短 12%",
+      apply(game) {
+        game.weapons.keyboard.cooldown = Math.max(0.18, game.weapons.keyboard.cooldown * 0.88);
+      },
+    },
+    {
+      id: "coffee",
+      title: "咖啡环流",
+      desc: "解锁或强化环绕咖啡，对近身敌人持续造成伤害",
+      apply(game) {
+        const weapon = game.weapons.coffee;
+        weapon.unlocked = true;
+        weapon.level += 1;
+        weapon.damage += 5;
+        weapon.radius += 12;
+        weapon.cooldown = Math.max(0.45, weapon.cooldown * 0.94);
+      },
+    },
+    {
+      id: "invoice",
+      title: "报销飞票",
+      desc: "解锁或强化飞票，自动散射多个目标",
+      apply(game) {
+        const weapon = game.weapons.invoice;
+        weapon.unlocked = true;
+        weapon.level += 1;
+        weapon.damage += 5;
+        weapon.burst += 1;
+      },
+    },
+    {
+      id: "speed",
+      title: "下班冲刺",
+      desc: "移动速度 +22",
+      apply(game) {
+        game.player.speed += 22;
+      },
+    },
+    {
+      id: "pickup",
+      title: "报销磁铁",
+      desc: "拾取范围 +28",
+      apply(game) {
+        game.player.pickupRadius += 28;
+      },
+    },
+    {
+      id: "burst",
+      title: "需求连发",
+      desc: "额外发射 1 个键盘",
+      apply(game) {
+        game.weapons.keyboard.burst += 1;
+      },
+    },
+    {
+      id: "health",
+      title: "续杯咖啡",
+      desc: "回复 35 生命，生命上限 +12",
+      apply(game) {
+        game.player.maxHp += 12;
+        game.player.hp = Math.min(game.player.maxHp, game.player.hp + 35);
+      },
+    },
+  ],
+};
+
+export const catTheme = {
+  ...officeTheme,
+  name: "猫猫大战蟑螂",
+  player: {
+    ...officeTheme.player,
+    maxHp: 110,
+    speed: 268,
+    color: "#f4c28b",
+    tieColor: "#ff6b8f",
+  },
+  weapons: {
+    ...officeTheme.weapons,
+    keyboard: {
+      ...officeTheme.weapons.keyboard,
+      name: "猫爪冲击",
+      color: "#ffe1a3",
+    },
+    coffee: {
+      ...officeTheme.weapons.coffee,
+      name: "猫薄荷环流",
+      color: "#8dffba",
+    },
+    invoice: {
+      ...officeTheme.weapons.invoice,
+      name: "小鱼干飞镖",
+      color: "#72d7ff",
+    },
+  },
+  enemies: {
+    manager: {
+      ...officeTheme.enemies.manager,
+      name: "急躁蟑螂",
+      hp: 30,
+      speed: 92,
+      color: "#7b5b44",
+    },
+    director: {
+      ...officeTheme.enemies.director,
+      name: "变异蟑螂",
+      hp: 88,
+      color: "#55a06a",
+    },
+    boss: {
+      ...officeTheme.enemies.boss,
+      name: "蟑螂大王",
+      hp: 300,
+      color: "#b36b32",
+    },
+  },
+  upgrades: officeTheme.upgrades.map((upgrade) => {
+    const replacements = {
+      damage: { title: "猫爪开刃", desc: "猫爪冲击伤害 +9" },
+      cooldown: { title: "炸毛手速", desc: "攻击间隔缩短 12%" },
+      speed: { title: "夜跑冲刺", desc: "移动速度 +22" },
+      pickup: { title: "铃铛磁铁", desc: "拾取范围 +28" },
+      coffee: { title: "猫薄荷环流", desc: "解锁或强化猫薄荷，对近身敌人持续造成伤害" },
+      invoice: { title: "小鱼干飞镖", desc: "解锁或强化飞镖，自动散射多个目标" },
+      burst: { title: "连环猫爪", desc: "额外发射 1 个猫爪" },
+      health: { title: "回血罐头", desc: "回复 35 生命，生命上限 +12" },
+    };
+    return replacements[upgrade.id] ? { ...upgrade, ...replacements[upgrade.id] } : upgrade;
+  }),
+};
+
+export const xianxiaTheme = {
+  name: "云栖修真录",
+  assetBase: "./assets/xianxia/",
+  copy: {
+    kills: "斩妖",
+    upgradeTitle: "突破机缘",
+    upgradeSubtitle: "择一机缘，继续修行",
+    bossWarning: "天劫降临！",
+    resultTitle: "本次问道结算",
+    restart: "再入洞府",
+    pause: "入定中",
+    resume: "继续修行",
+    hp: "气血",
+    energy: "灵力",
+    xp: "修为",
+  },
+  realms: ["炼气", "筑基", "金丹", "元婴", "化神", "炼虚", "合体", "大乘", "渡劫", "飞升"],
+  heroRealms: [
+    { realm: "炼气", asset: "hero-lianqi.png", auraColor: "#8ef7ff", auraStyle: "mist" },
+    { realm: "筑基", asset: "hero-zhuji.png", auraColor: "#ffd879", auraStyle: "foundation" },
+    { realm: "金丹", asset: "hero-jindan.png", auraColor: "#ffef78", auraStyle: "golden-core" },
+    { realm: "元婴", asset: "hero-yuanying.png", auraColor: "#b58cff", auraStyle: "spirit-shadow" },
+    { realm: "化神", asset: "hero-huashen.png", auraColor: "#8fffd4", auraStyle: "starlight" },
+    { realm: "炼虚", asset: "hero-lianxu.png", auraColor: "#8bb6ff", auraStyle: "void-rune" },
+    { realm: "合体", asset: "hero-heti.png", auraColor: "#ff9bdd", auraStyle: "double-ring" },
+    { realm: "大乘", asset: "hero-dacheng.png", auraColor: "#ffe39a", auraStyle: "dharma" },
+    { realm: "渡劫", asset: "hero-dujie.png", auraColor: "#b9e7ff", auraStyle: "thunder" },
+    { realm: "飞升", asset: "hero-feisheng.png", auraColor: "#fff6c9", auraStyle: "ascension" },
+  ],
+  player: {
+    maxHp: 118,
+    speed: 252,
+    radius: 18,
+    pickupRadius: 92,
+    color: "#d9f7ff",
+    tieColor: "#d7b76a",
+    asset: "hero-cultivator.png",
+  },
+  spells: {
+    keyboard: {
+      label: "御剑成阵",
+      type: "法术",
+      asset: "spell-sword-array.png",
+      icon: "spell-sword-array.png",
+    },
+    coffee: {
+      label: "业火莲华",
+      type: "法术",
+      asset: "spell-fire-lotus.png",
+      icon: "spell-fire-lotus.png",
+    },
+    invoice: {
+      label: "雷符万钧",
+      type: "法术",
+      asset: "spell-thunder-talisman.png",
+      icon: "spell-thunder-talisman.png",
+    },
+    ultimate: {
+      label: "天劫雷瀑",
+      type: "大招",
+      asset: "spell-heaven-thunder.png",
+      icon: "spell-heaven-thunder.png",
+      damage: 95,
+    },
+  },
+  weapons: {
+    keyboard: {
+      id: "keyboard",
+      name: "御剑成阵",
+      level: 1,
+      damage: 22,
+      cooldown: 0.48,
+      range: 285,
+      projectileSpeed: 620,
+      projectileRadius: 8,
+      burst: 1,
+      color: "#d8f7ff",
+      asset: "spell-sword-array.png",
+    },
+    coffee: {
+      id: "coffee",
+      name: "业火莲华",
+      level: 0,
+      damage: 13,
+      cooldown: 0.82,
+      range: 124,
+      radius: 76,
+      color: "#ffbc65",
+      asset: "spell-fire-lotus.png",
+      unlocked: false,
+    },
+    invoice: {
+      id: "invoice",
+      name: "雷符万钧",
+      level: 0,
+      damage: 15,
+      cooldown: 1.05,
+      range: 340,
+      projectileSpeed: 450,
+      projectileRadius: 7,
+      burst: 3,
+      color: "#f3df78",
+      asset: "spell-thunder-talisman.png",
+      unlocked: false,
+    },
+  },
+  equipmentSlots: {
+    robe: {
+      name: "法袍",
+      maxTier: 3,
+      assets: ["equip-robe-1.png", "equip-robe-2.png", "equip-robe-3.png"],
+      layer: "over",
+      anchor: { x: 0, y: 11 },
+      renderScale: 0.78,
+    },
+    crown: {
+      name: "法冠",
+      maxTier: 3,
+      assets: ["equip-crown-1.png", "equip-crown-2.png", "equip-crown-3.png"],
+      layer: "over",
+      anchor: { x: 0, y: -34 },
+      renderScale: 0.58,
+    },
+    boots: {
+      name: "靴子",
+      maxTier: 3,
+      assets: ["equip-boots-1.png", "equip-boots-2.png", "equip-boots-3.png"],
+      layer: "under",
+      anchor: { x: 0, y: 30 },
+      renderScale: 0.92,
+    },
+    talisman: {
+      name: "护符",
+      maxTier: 3,
+      assets: ["equip-talisman-1.png", "equip-talisman-2.png", "equip-talisman-3.png"],
+      layer: "over",
+      anchor: { x: -31, y: -1 },
+      renderScale: 0.48,
+    },
+    artifact: {
+      name: "法器",
+      maxTier: 3,
+      assets: ["equip-artifact-1.png", "equip-artifact-2.png", "equip-artifact-3.png"],
+      layer: "over",
+      anchor: { x: 42, y: -12 },
+      renderScale: 0.82,
+    },
+  },
+  enemies: {
+    manager: {
+      name: "山魈小妖",
+      hp: 36,
+      speed: 84,
+      damage: 12,
+      radius: 17,
+      xp: 12,
+      color: "#5f8e72",
+      asset: "enemy-yao.png",
+    },
+    director: {
+      name: "黑袍魔修",
+      hp: 92,
+      speed: 62,
+      damage: 19,
+      radius: 22,
+      xp: 30,
+      color: "#6a54a3",
+      asset: "enemy-demonic-cultivator.png",
+    },
+    boss: {
+      name: "天劫雷主",
+      hp: 310,
+      speed: 44,
+      damage: 30,
+      radius: 36,
+      xp: 120,
+      color: "#9e66ff",
+      asset: "boss-thunder-tribulation-lord.png",
+    },
+  },
+  pickups: {
+    xp: {
+      name: "灵气珠",
+      color: "#83e7ff",
+      asset: "pickup-spirit-orb.png",
+    },
+    health: {
+      name: "回血丹",
+      color: "#8dffba",
+      asset: "pickup-heal-pill.png",
+    },
+  },
+  background: {
+    asset: "battle-map.png",
+    fallbackAsset: "cover-background.png",
+    tint: "#182338",
+  },
+  waves: [
+    { at: 0, type: "manager", rate: 0.95, cap: 22 },
+    { at: 18, type: "manager", rate: 0.62, cap: 38 },
+    { at: 34, type: "director", rate: 1.95, cap: 12 },
+    { at: 58, type: "boss", rate: 999, cap: 1, once: true },
+    { at: 72, type: "manager", rate: 0.38, cap: 58 },
+    { at: 92, type: "director", rate: 1.18, cap: 22 },
+  ],
+  spellUpgrades: [
+    {
+      id: "damage",
+      kind: "spell",
+      rarity: "玄",
+      title: "剑气淬锋",
+      desc: "御剑成阵伤害 +10",
+      apply(game) {
+        game.weapons.keyboard.damage += 10;
+      },
+    },
+    {
+      id: "cooldown",
+      kind: "spell",
+      rarity: "黄",
+      title: "御剑如风",
+      desc: "御剑成阵施法间隔缩短 12%",
+      apply(game) {
+        game.weapons.keyboard.cooldown = Math.max(0.16, game.weapons.keyboard.cooldown * 0.88);
+      },
+    },
+    {
+      id: "coffee",
+      kind: "spell",
+      rarity: "玄",
+      title: "灵火护体",
+      desc: "解锁或强化灵火护体，灼烧近身妖魔",
+      apply(game) {
+        const weapon = game.weapons.coffee;
+        weapon.unlocked = true;
+        weapon.level += 1;
+        weapon.damage += 5;
+        weapon.radius += 13;
+        weapon.cooldown = Math.max(0.42, weapon.cooldown * 0.94);
+      },
+    },
+    {
+      id: "invoice",
+      kind: "spell",
+      rarity: "玄",
+      title: "符箓散射",
+      desc: "解锁或强化符箓散射，自动轰击妖潮",
+      apply(game) {
+        const weapon = game.weapons.invoice;
+        weapon.unlocked = true;
+        weapon.level += 1;
+        weapon.damage += 5;
+        weapon.burst += 1;
+      },
+    },
+    {
+      id: "burst",
+      kind: "spell",
+      rarity: "地",
+      title: "万剑分光",
+      desc: "御剑成阵额外发射 1 道剑光",
+      apply(game) {
+        game.weapons.keyboard.burst += 1;
+      },
+    },
+    {
+      id: "ultimate-damage",
+      kind: "spell",
+      rarity: "天",
+      title: "雷瀑增幅",
+      desc: "天劫雷瀑伤害 +28",
+      apply(game) {
+        game.ultimate.damage += 28;
+      },
+    },
+    {
+      id: "ultimate-charge",
+      kind: "spell",
+      rarity: "地",
+      title: "劫云凝聚",
+      desc: "灵力获取 +18%",
+      apply(game) {
+        game.energy.gainMultiplier += 0.18;
+      },
+    },
+  ],
+  equipmentUpgrades: [
+    {
+      id: "equip-robe",
+      kind: "equipment",
+      slot: "robe",
+      rarity: "玄",
+      title: "青玄法袍",
+      desc: "法袍升阶，气血上限提升",
+      apply(game, tier) {
+        game.player.maxHp += 18 + tier * 8;
+        game.player.hp = Math.min(game.player.maxHp, game.player.hp + 20);
+      },
+    },
+    {
+      id: "equip-crown",
+      kind: "equipment",
+      slot: "crown",
+      rarity: "玄",
+      title: "聚灵法冠",
+      desc: "法冠升阶，灵力获取提升",
+      apply(game, tier) {
+        game.energy.gainMultiplier += 0.08 + tier * 0.03;
+      },
+    },
+    {
+      id: "equip-boots",
+      kind: "equipment",
+      slot: "boots",
+      rarity: "黄",
+      title: "踏云灵靴",
+      desc: "靴子升阶，移动速度提升",
+      apply(game, tier) {
+        game.player.speed += 18 + tier * 5;
+      },
+    },
+    {
+      id: "equip-talisman",
+      kind: "equipment",
+      slot: "talisman",
+      rarity: "地",
+      title: "护心灵符",
+      desc: "护符升阶，拾取范围和减伤提升",
+      apply(game, tier) {
+        game.player.pickupRadius += 18 + tier * 6;
+        game.player.damageReduction = Math.min(0.45, game.player.damageReduction + 0.05);
+      },
+    },
+    {
+      id: "equip-artifact",
+      kind: "equipment",
+      slot: "artifact",
+      rarity: "天",
+      title: "悬天法器",
+      desc: "法器升阶，所有法术伤害提升",
+      apply(game, tier) {
+        game.spellPowerBonus += 0.1 + tier * 0.04;
+      },
+    },
+  ],
+  fateUpgrades: [
+    {
+      id: "speed",
+      kind: "fate",
+      rarity: "黄",
+      title: "踏云步",
+      desc: "移动速度 +24",
+      apply(game) {
+        game.player.speed += 24;
+      },
+    },
+    {
+      id: "pickup",
+      kind: "fate",
+      rarity: "黄",
+      title: "聚灵阵",
+      desc: "修为拾取范围 +30",
+      apply(game) {
+        game.player.pickupRadius += 30;
+      },
+    },
+    {
+      id: "health",
+      kind: "fate",
+      rarity: "玄",
+      title: "金丹护脉",
+      desc: "回复 35 气血，气血上限 +12",
+      apply(game) {
+        game.player.maxHp += 12;
+        game.player.hp = Math.min(game.player.maxHp, game.player.hp + 35);
+      },
+    },
+  ],
+  meta: {
+    saveKey: "xianxia-survivor-meta-v1",
+    currencies: {
+      spiritStone: { name: "灵石", color: "#f4d778" },
+      dao: { name: "道行", color: "#b9f3ff" },
+      mysticIron: { name: "玄铁", color: "#c9c3b7" },
+      spiritEssence: { name: "灵蕴", color: "#9dffca" },
+      thunderShard: { name: "雷纹", color: "#b995ff" },
+    },
+    homeAssets: {
+      background: "home-dongfu-bg.png",
+      tabs: {
+        chapters: "home-tab-chapters.png",
+        start: "home-tab-start.png",
+        talents: "home-tab-talents.png",
+        artifacts: "home-tab-artifacts.png",
+        cultivation: "home-tab-cultivation.png",
+        facilities: "home-tab-facilities.png",
+      },
+    },
+    difficulties: [
+      {
+        id: "mortal",
+        name: "凡境",
+        enemyMods: { hp: 1, speed: 1, damage: 1 },
+        spawnMods: { rate: 1, cap: 1 },
+        rewardMultiplier: 1,
+      },
+      {
+        id: "mystic",
+        name: "玄境",
+        enemyMods: { hp: 1.45, speed: 1.12, damage: 1.14 },
+        spawnMods: { rate: 0.8, cap: 1.25 },
+        rewardMultiplier: 1.6,
+      },
+      {
+        id: "heaven",
+        name: "天境",
+        enemyMods: { hp: 2.1, speed: 1.22, damage: 1.28 },
+        spawnMods: { rate: 0.64, cap: 1.55 },
+        rewardMultiplier: 2.5,
+      },
+    ],
+    chapters: [
+      {
+        id: "cloud-bamboo-valley",
+        name: "云栖竹谷",
+        desc: "灵泉竹影间的入门试炼。",
+        background: "battle-map.png",
+        fallbackBackground: "cover-background.png",
+        unlock: { type: "default" },
+        enemyMods: { hp: 1, speed: 1, damage: 1 },
+        spawnMods: { rate: 1, cap: 1 },
+        rewardMultiplier: 1,
+        bossAt: 58,
+        bossName: "山魈妖王",
+        bossAsset: "boss-mountain-yao-king.png",
+        bossWarning: "妖王出山！竹谷震荡。",
+        bossMechanics: {
+          auraColor: "#6ee7a2",
+          sigil: "claw",
+          subtitle: "啸聚群妖的竹谷霸主",
+          introText: "妖王出山！竹谷震荡。",
+          victoryText: "竹谷妖氛散去，赤莲灯现出灵光。",
+          displayScale: 1.32,
+          phaseTexts: ["妖王怒吼，连续跳扑。", "群妖响应，妖王召来护卫。"],
+          skills: [
+            { id: "cliff-leap", name: "跃崖扑击", shape: "circle", cooldown: 6.4, telegraph: 0.75, radius: 94, damage: 20, color: "#ff8a5c", leap: true, cameraShake: 13 },
+            { id: "bamboo-shock", name: "竹影三震", shape: "cone", cooldown: 8.8, telegraph: 0.8, radius: 185, arc: 0.72, damage: 16, color: "#89f5aa", phase: 1, pattern: "tripleCone" },
+            { id: "yao-summon", name: "啸聚群妖", shape: "summon", cooldown: 12.5, telegraph: 0.65, count: 5, eliteCount: 1, type: "manager", eliteType: "director", color: "#6ee7a2", phase: 2 },
+          ],
+        },
+        firstClearUnlocks: {
+          chapters: ["stone-array"],
+          artifacts: ["red-lotus-lamp"],
+          startingTalents: ["spirit-orb-value", "wide-sense"],
+          cultivations: ["fire-lotus-scripture"],
+        },
+        drops: { mysticIron: 3, spiritEssence: 8, thunderShard: 0 },
+      },
+      {
+        id: "stone-array",
+        name: "玄石古阵",
+        desc: "石碑与符文裂隙交错的古阵。",
+        background: "map-stone-array.png",
+        fallbackBackground: "battle-map.png",
+        unlock: { type: "chapterClear", chapterId: "cloud-bamboo-valley" },
+        enemyMods: { hp: 1.18, speed: 1.04, damage: 1.08 },
+        spawnMods: { rate: 0.92, cap: 1.12 },
+        rewardMultiplier: 1.28,
+        bossAt: 72,
+        bossName: "黑袍阵主",
+        bossAsset: "boss-black-array-master.png",
+        bossWarning: "古阵复苏，黑袍阵主现身。",
+        bossMechanics: {
+          auraColor: "#b184ff",
+          sigil: "array",
+          subtitle: "以魂幡驱动玄石古阵",
+          introText: "古阵复苏，黑袍阵主现身。",
+          victoryText: "阵眼崩解，雷符印从石碑中坠落。",
+          displayScale: 1.28,
+          phaseTexts: ["阵眼亮起，石碑开始封路。", "四象阵开，魂幡先牵再爆。"],
+          skills: [
+            { id: "rune-burst", name: "符文裂爆", shape: "circle", cooldown: 5.8, telegraph: 0.9, radius: 74, damage: 21, color: "#b184ff", pattern: "scatterCircles", count: 4 },
+            { id: "soul-pull", name: "魂幡牵引", shape: "pull", cooldown: 9.4, telegraph: 0.55, radius: 230, damage: 10, pull: 96, followup: "rune-burst", color: "#8d6bff", phase: 1 },
+            { id: "stone-line", name: "石阵封锁", shape: "line", cooldown: 8.2, telegraph: 0.85, length: 390, width: 58, duration: 2.8, damage: 18, color: "#9ea9ba", phase: 2, pattern: "crossLines" },
+          ],
+        },
+        firstClearUnlocks: {
+          chapters: ["blood-wasteland"],
+          artifacts: ["thunder-seal"],
+          startingTalents: ["blood-return", "minor-cycle", "talisman-fate"],
+          cultivations: ["thunder-talisman-record"],
+        },
+        drops: { mysticIron: 5, spiritEssence: 12, thunderShard: 0 },
+      },
+      {
+        id: "blood-wasteland",
+        name: "血煞荒原",
+        desc: "赤黑妖气荒原，血雾与裂谷吞没灵脉。",
+        background: "map-blood-wasteland.png",
+        fallbackBackground: "battle-map.png",
+        unlock: { type: "chapterClear", chapterId: "stone-array" },
+        enemyMods: { hp: 1.42, speed: 1.08, damage: 1.16 },
+        spawnMods: { rate: 0.84, cap: 1.24 },
+        rewardMultiplier: 1.65,
+        bossAt: 84,
+        bossName: "血煞魔君",
+        bossAsset: "boss-blood-demon-lord.png",
+        bossWarning: "血煞翻涌，魔君踏荒而来。",
+        bossMechanics: {
+          auraColor: "#ff5d6d",
+          sigil: "blood",
+          subtitle: "吸食妖潮血气的荒原魔君",
+          introText: "血煞翻涌，魔君踏荒而来。",
+          victoryText: "血池干涸，玄龟甲浮出荒原。",
+          displayScale: 1.38,
+          phaseTexts: ["血池蔓延，荒原开始腐蚀。", "血影分身，魔君噬血回潮。"],
+          skills: [
+            { id: "blood-pool", name: "血池腐蚀", shape: "pool", cooldown: 5.6, telegraph: 0.65, radius: 86, duration: 5.4, damage: 8, color: "#ff4b63", pattern: "chasePools", count: 3 },
+            { id: "blood-claw", name: "血爪裂地", shape: "line", cooldown: 7.6, telegraph: 0.72, length: 330, width: 68, damage: 23, color: "#ff6a76", phase: 1, pattern: "tripleClaw" },
+            { id: "blood-shadow", name: "血影分身", shape: "summon", cooldown: 13, telegraph: 0.75, count: 2, type: "director", color: "#ff4b63", phase: 2, lifesteal: 42 },
+          ],
+        },
+        firstClearUnlocks: {
+          chapters: ["thunder-gate"],
+          artifacts: ["black-turtle-armor"],
+          startingTalents: ["elite-breaker", "thunder-sense", "fire-seed"],
+          cultivations: ["void-thunder-scripture"],
+        },
+        drops: { mysticIron: 8, spiritEssence: 16, thunderShard: 0 },
+      },
+      {
+        id: "thunder-gate",
+        name: "雷劫天门",
+        desc: "高空天门平台，金紫雷纹在脚下奔涌。",
+        background: "map-thunder-gate.png",
+        fallbackBackground: "battle-map.png",
+        unlock: { type: "chapterClear", chapterId: "blood-wasteland" },
+        enemyMods: { hp: 1.72, speed: 1.12, damage: 1.24 },
+        spawnMods: { rate: 0.76, cap: 1.34 },
+        rewardMultiplier: 2,
+        bossAt: 96,
+        bossName: "天劫雷主",
+        bossAsset: "boss-thunder-tribulation-lord.png",
+        bossWarning: "天劫降临！雷主镇守天门。",
+        bossMechanics: {
+          auraColor: "#b9e7ff",
+          sigil: "thunder",
+          subtitle: "镇守飞升天门的雷云法相",
+          introText: "天劫降临！雷主镇守天门。",
+          victoryText: "雷云破开，天门显现飞升金光。",
+          displayScale: 1.46,
+          phaseTexts: ["雷线成阵，天门震动。", "九重雷劫，避其锋芒。"],
+          skills: [
+            { id: "thunder-strike", name: "九霄雷落", shape: "circle", cooldown: 4.8, telegraph: 0.7, radius: 78, damage: 26, color: "#f4dd72", pattern: "scatterCircles", count: 5, cameraShake: 12 },
+            { id: "thunder-line", name: "九霄雷线", shape: "line", cooldown: 6.8, telegraph: 0.82, length: 560, width: 54, duration: 0.55, damage: 24, color: "#9ed8ff", phase: 1, pattern: "parallelLines" },
+            { id: "thunder-prison", name: "雷狱囚笼", shape: "ring", cooldown: 11.5, telegraph: 0.95, radius: 136, width: 36, damage: 20, color: "#d6c2ff", phase: 2, pattern: "prisonPlusStrikes" },
+          ],
+        },
+        firstClearUnlocks: {
+          artifacts: ["demon-bell"],
+          startingTalents: ["thunder-sense"],
+        },
+        drops: { mysticIron: 10, spiritEssence: 20, thunderShard: 2 },
+      },
+    ],
+    artifacts: [
+      {
+        id: "qingming-sword-case",
+        name: "青冥剑匣",
+        shortName: "剑匣",
+        icon: "artifact-qingming-sword-case.png",
+        unlock: { type: "default" },
+        maxLevel: 10,
+        tags: ["飞剑", "攻击"],
+        desc: "开局御剑成阵额外剑光，升级提升飞剑伤害。",
+        effects: [
+          { target: "weapon.keyboard.burst", op: "add", base: 1, perLevel: 0 },
+          { target: "weapon.keyboard.damage", op: "add", base: 2, perLevel: 2 },
+        ],
+      },
+      {
+        id: "red-lotus-lamp",
+        name: "赤莲灯",
+        shortName: "莲灯",
+        icon: "artifact-red-lotus-lamp.png",
+        unlock: { type: "chapterClear", chapterId: "cloud-bamboo-valley" },
+        maxLevel: 10,
+        tags: ["灵火", "范围"],
+        desc: "开局解锁业火莲华，升级扩大火莲半径。",
+        effects: [
+          { target: "weapon.coffee.unlocked", op: "set", value: true },
+          { target: "weapon.coffee.level", op: "add", base: 1, perLevel: 0 },
+          { target: "weapon.coffee.radius", op: "add", base: 8, perLevel: 4 },
+          { target: "weapon.coffee.damage", op: "add", base: 2, perLevel: 1 },
+        ],
+      },
+      {
+        id: "thunder-seal",
+        name: "雷符印",
+        shortName: "雷印",
+        icon: "artifact-thunder-seal.png",
+        unlock: { type: "chapterClear", chapterId: "stone-array" },
+        maxLevel: 10,
+        tags: ["雷符", "爆发"],
+        desc: "开局灵力更高，并强化雷符伤害。",
+        effects: [
+          { target: "energy.value", op: "add", base: 25, perLevel: 2 },
+          { target: "weapon.invoice.damage", op: "add", base: 3, perLevel: 2 },
+        ],
+      },
+      {
+        id: "spirit-gourd",
+        name: "聚灵葫芦",
+        shortName: "葫芦",
+        icon: "artifact-spirit-gourd.png",
+        unlock: { type: "default" },
+        maxLevel: 10,
+        tags: ["成长", "拾取"],
+        desc: "提高修为与灵力获取，适合滚雪球。",
+        effects: [
+          { target: "player.pickupRadius", op: "add", base: 18, perLevel: 3 },
+          { target: "energy.gainMultiplier", op: "add", base: 0.08, perLevel: 0.018 },
+          { target: "run.xpMultiplier", op: "add", base: 0.08, perLevel: 0.015 },
+        ],
+      },
+      {
+        id: "black-turtle-armor",
+        name: "玄龟甲",
+        shortName: "龟甲",
+        icon: "artifact-black-turtle-armor.png",
+        unlock: { type: "chapterClear", chapterId: "blood-wasteland" },
+        maxLevel: 10,
+        tags: ["生存", "护体"],
+        desc: "提高气血上限和减伤，适合高难度稳扎稳打。",
+        effects: [
+          { target: "player.maxHp", op: "add", base: 35, perLevel: 6 },
+          { target: "player.hp", op: "add", base: 35, perLevel: 6 },
+          { target: "player.damageReduction", op: "add", base: 0.04, perLevel: 0.01, max: 0.32 },
+        ],
+      },
+      {
+        id: "demon-bell",
+        name: "镇妖铃",
+        shortName: "妖铃",
+        icon: "artifact-demon-bell.png",
+        unlock: { type: "chapterClear", chapterId: "thunder-gate" },
+        maxLevel: 10,
+        tags: ["控场", "法器"],
+        desc: "提高法术伤害，后续可扩展为周期震退。",
+        effects: [
+          { target: "spellPowerBonus", op: "add", base: 0.1, perLevel: 0.025 },
+          { target: "player.pickupRadius", op: "add", base: 10, perLevel: 3 },
+        ],
+      },
+    ],
+    startingTalents: [
+      { id: "sword-heart", name: "剑心通明", desc: "飞剑伤害 +8%", unlock: { type: "default" }, effects: [{ target: "weapon.keyboard.damageMultiplier", op: "add", value: 0.08 }] },
+      { id: "full-meridian", name: "灵脉充盈", desc: "灵力获取 +10%", unlock: { type: "default" }, effects: [{ target: "energy.gainMultiplier", op: "add", value: 0.1 }] },
+      { id: "swift-body", name: "身轻如燕", desc: "移速 +8%", unlock: { type: "default" }, effects: [{ target: "player.speedMultiplier", op: "add", value: 0.08 }] },
+      { id: "stable-dantian", name: "丹田稳固", desc: "气血上限 +18", unlock: { type: "default" }, effects: [{ target: "player.maxHp", op: "add", value: 18 }, { target: "player.hp", op: "add", value: 18 }] },
+      { id: "spirit-orb-value", name: "聚气成珠", desc: "修为珠价值 +10%", unlock: { type: "chapterClear", chapterId: "cloud-bamboo-valley" }, effects: [{ target: "run.xpMultiplier", op: "add", value: 0.1 }] },
+      { id: "wide-sense", name: "见微知著", desc: "拾取范围 +18", unlock: { type: "chapterClear", chapterId: "cloud-bamboo-valley" }, effects: [{ target: "player.pickupRadius", op: "add", value: 18 }] },
+      { id: "blood-return", name: "血气回转", desc: "每 40 斩妖回复气血", unlock: { type: "chapterClear", chapterId: "stone-array" }, effects: [{ target: "run.killHeal", op: "add", value: 8 }] },
+      { id: "minor-cycle", name: "小周天", desc: "灵力随时间缓慢恢复", unlock: { type: "chapterClear", chapterId: "stone-array" }, effects: [{ target: "run.energyRegen", op: "add", value: 0.28 }] },
+      { id: "elite-breaker", name: "破邪", desc: "对精英怪伤害 +12%", unlock: { type: "chapterClear", chapterId: "blood-wasteland" }, effects: [{ target: "run.eliteDamageBonus", op: "add", value: 0.12 }] },
+      { id: "thunder-sense", name: "雷感", desc: "天劫雷瀑伤害 +10%", unlock: { type: "chapterClear", chapterId: "blood-wasteland" }, effects: [{ target: "ultimate.damageMultiplier", op: "add", value: 0.1 }] },
+      { id: "talisman-fate", name: "符缘", desc: "开局雷符等级 +1", unlock: { type: "chapterClear", chapterId: "stone-array" }, effects: [{ target: "weapon.invoice.level", op: "add", value: 1 }, { target: "weapon.invoice.unlocked", op: "set", value: true }] },
+      { id: "fire-seed", name: "火种", desc: "开局灵火等级 +1", unlock: { type: "chapterClear", chapterId: "blood-wasteland" }, effects: [{ target: "weapon.coffee.level", op: "add", value: 1 }, { target: "weapon.coffee.unlocked", op: "set", value: true }] },
+    ],
+    talentTrees: [
+      {
+        id: "sword",
+        name: "剑修",
+        icon: "path-sword.png",
+        desc: "飞剑伤害、冷却和剑阵质变。",
+        maxLevel: 12,
+        costCurrency: "spiritStone",
+        effects: [{ target: "weapon.keyboard.damageMultiplier", op: "add", perLevel: 0.04 }],
+        milestones: { 5: "开局御剑成阵等级 +1", 8: "剑匣同系额外强化", 12: "万剑归宗预留" },
+      },
+      {
+        id: "spirit",
+        name: "灵修",
+        icon: "path-spirit.png",
+        desc: "修为、灵力和突破效率。",
+        maxLevel: 12,
+        costCurrency: "spiritStone",
+        effects: [{ target: "run.xpMultiplier", op: "add", perLevel: 0.035 }, { target: "energy.gainMultiplier", op: "add", perLevel: 0.025 }],
+        milestones: { 5: "突破时灵力 +10", 8: "修为珠牵引更快", 12: "问道机缘预留" },
+      },
+      {
+        id: "body",
+        name: "体修",
+        icon: "path-body.png",
+        desc: "气血、减伤和容错。",
+        maxLevel: 12,
+        costCurrency: "spiritStone",
+        effects: [{ target: "player.maxHp", op: "add", perLevel: 7 }, { target: "player.hp", op: "add", perLevel: 7 }, { target: "player.damageReduction", op: "add", perLevel: 0.006, max: 0.24 }],
+        milestones: { 5: "受击无敌略增", 8: "低血量减伤预留", 12: "金身预留" },
+      },
+      {
+        id: "movement",
+        name: "遁法",
+        icon: "path-movement.png",
+        desc: "移速、拾取范围和手感。",
+        maxLevel: 12,
+        costCurrency: "spiritStone",
+        effects: [{ target: "player.speedMultiplier", op: "add", perLevel: 0.022 }, { target: "player.pickupRadius", op: "add", perLevel: 6 }],
+        milestones: { 5: "踏云加速", 8: "拾取半径扩张", 12: "短冲刺预留" },
+      },
+      {
+        id: "forge",
+        name: "炼器",
+        icon: "path-forge.png",
+        desc: "本命法宝和局内装备联动。",
+        maxLevel: 12,
+        costCurrency: "spiritStone",
+        effects: [{ target: "spellPowerBonus", op: "add", perLevel: 0.018 }],
+        milestones: { 5: "法宝升级折扣", 8: "开局法器灵光", 12: "本命共鸣预留" },
+      },
+    ],
+    facilities: [
+      { id: "field", name: "灵田", icon: "facility-field.png", maxLevel: 10, desc: "每级结算灵石 +2%。", effects: [{ target: "reward.spiritStoneMultiplier", op: "add", perLevel: 0.02 }] },
+      { id: "alchemy", name: "丹房", icon: "facility-alchemy.png", maxLevel: 10, desc: "回血丹效果和掉率提升。", effects: [{ target: "run.healMultiplier", op: "add", perLevel: 0.04 }] },
+      { id: "forge", name: "炼器炉", icon: "facility-forge.png", maxLevel: 10, desc: "强化法宝和法器伤害。", effects: [{ target: "spellPowerBonus", op: "add", perLevel: 0.012 }] },
+      { id: "library", name: "藏经阁", icon: "facility-library.png", maxLevel: 10, desc: "功法升级与解锁核心设施。", effects: [{ target: "weapon.keyboard.damageMultiplier", op: "add", perLevel: 0.01 }] },
+      { id: "cushion", name: "悟道蒲团", icon: "facility-cushion.png", maxLevel: 10, desc: "解锁更多初始天赋槽。", milestones: { 3: "初始天赋槽 +1", 7: "初始天赋槽再 +1" }, effects: [{ target: "energy.gainMultiplier", op: "add", perLevel: 0.01 }] },
+      { id: "thunderPool", name: "雷池", icon: "facility-thunder-pool.png", maxLevel: 10, desc: "强化天劫雷瀑。", effects: [{ target: "ultimate.damageMultiplier", op: "add", perLevel: 0.025 }] },
+    ],
+    cultivations: [
+      { id: "sword-scripture", name: "御剑诀", icon: "path-sword.png", spell: "keyboard", unlock: { type: "default" }, maxLevel: 5, desc: "提高御剑成阵出现权重。", effects: [{ target: "weapon.keyboard.level", op: "add", value: 1 }] },
+      { id: "fire-lotus-scripture", name: "赤莲经", icon: "artifact-red-lotus-lamp.png", spell: "coffee", unlock: { type: "chapterClear", chapterId: "cloud-bamboo-valley" }, maxLevel: 5, desc: "开局更容易走灵火路线。", effects: [{ target: "weapon.coffee.unlocked", op: "set", value: true }, { target: "weapon.coffee.level", op: "add", value: 1 }] },
+      { id: "thunder-talisman-record", name: "雷符录", icon: "artifact-thunder-seal.png", spell: "invoice", unlock: { type: "chapterClear", chapterId: "stone-array" }, maxLevel: 5, desc: "开局更容易走雷符路线。", effects: [{ target: "weapon.invoice.unlocked", op: "set", value: true }, { target: "weapon.invoice.level", op: "add", value: 1 }] },
+      { id: "void-thunder-scripture", name: "太虚引雷诀", icon: "path-spirit.png", spell: "ultimate", unlock: { type: "chapterClear", chapterId: "blood-wasteland" }, maxLevel: 5, desc: "强化灵力与天劫雷瀑。", effects: [{ target: "energy.value", op: "add", value: 18 }, { target: "ultimate.damageMultiplier", op: "add", value: 0.08 }] },
+    ],
+  },
+};
+
+export const themes = {
+  xianxia: xianxiaTheme,
+  office: officeTheme,
+  cat: catTheme,
+};
