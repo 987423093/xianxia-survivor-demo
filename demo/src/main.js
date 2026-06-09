@@ -62,6 +62,12 @@ const normalize = (x, y) => {
 
 const imageAssets = new Map();
 const assetMeta = new Map();
+const PLAYER_SPRITE_SCALE = 3.85;
+const ENEMY_SPRITE_SCALE = 3.2;
+const supportsWebp = (() => {
+  const probe = document.createElement("canvas");
+  return probe.toDataURL("image/webp").startsWith("data:image/webp");
+})();
 const metaConfig = theme.meta || null;
 const isXianxiaMeta = Boolean(metaConfig);
 let activeHomeTab = "chapters";
@@ -98,17 +104,34 @@ function computeImageBounds(image) {
   };
 }
 
-function loadImageAsset(key, file) {
+function optimizedAssetFile(file) {
+  return supportsWebp && file?.endsWith(".png") ? file.replace(/\.png$/i, ".webp") : file;
+}
+
+function assetFileCandidates(file) {
+  const optimized = optimizedAssetFile(file);
+  return optimized && optimized !== file ? [optimized, file] : [file].filter(Boolean);
+}
+
+function loadImageAsset(key, file, candidateIndex = 0) {
   if (!file) return;
+  const candidates = assetFileCandidates(file);
+  const assetFile = candidates[candidateIndex];
+  if (!assetFile) return;
+  const current = imageAssets.get(key);
+  if (current?.sourceFile === file && current?.assetFile === assetFile) return;
+  assetMeta.delete(key);
   const image = new Image();
   image.decoding = "async";
-  image.src = `${theme.assetBase || ""}${file}`;
+  image.sourceFile = file;
+  image.assetFile = assetFile;
+  image.src = `${theme.assetBase || ""}${assetFile}`;
   image.addEventListener("load", () => {
     image.loaded = true;
-    if (theme.assetBase) assetMeta.set(key, computeImageBounds(image));
   });
   image.addEventListener("error", () => {
     image.failed = true;
+    if (candidates[candidateIndex + 1]) loadImageAsset(key, file, candidateIndex + 1);
   });
   imageAssets.set(key, image);
 }
@@ -116,6 +139,12 @@ function loadImageAsset(key, file) {
 function getAsset(key) {
   const image = imageAssets.get(key);
   return image?.loaded ? image : null;
+}
+
+function getAssetMeta(key, image) {
+  if (!theme.assetBase) return { sx: 0, sy: 0, sw: image.width, sh: image.height };
+  if (!assetMeta.has(key)) assetMeta.set(key, computeImageBounds(image));
+  return assetMeta.get(key);
 }
 
 function canUseGeometryFallback(assetName) {
@@ -127,21 +156,13 @@ function preloadThemeAssets() {
   loadImageAsset("player", theme.player.asset);
   loadImageAsset("background", theme.background?.asset);
   loadImageAsset("background:fallback", theme.background?.fallbackAsset);
-  for (const [index, hero] of (theme.heroRealms || []).entries()) loadImageAsset(`hero:${index}`, hero.asset);
-  for (const [type, enemy] of Object.entries(theme.enemies)) loadImageAsset(`enemy:${type}`, enemy.asset);
-  for (const [type, weapon] of Object.entries(theme.weapons)) loadImageAsset(`weapon:${type}`, weapon.asset);
-  for (const [type, spell] of Object.entries(theme.spells || {})) loadImageAsset(`spell:${type}`, spell.asset || spell.icon);
-  for (const [slot, config] of Object.entries(theme.equipmentSlots || {})) {
-    for (const [index, asset] of (config.assets || []).entries()) loadImageAsset(`equip:${slot}:${index + 1}`, asset);
+  loadImageAsset("hero:0", theme.heroRealms?.[0]?.asset);
+  for (const [type, enemy] of Object.entries(theme.enemies)) {
+    if (type !== "boss") loadImageAsset(`enemy:${type}`, enemy.asset);
   }
+  for (const [type, weapon] of Object.entries(theme.weapons)) loadImageAsset(`weapon:${type}`, weapon.asset);
   loadImageAsset("pickup:xp", theme.pickups?.xp?.asset);
   loadImageAsset("pickup:health", theme.pickups?.health?.asset);
-  loadImageAsset("home:background", metaConfig?.homeAssets?.background);
-  for (const [tab, asset] of Object.entries(metaConfig?.homeAssets?.tabs || {})) loadImageAsset(`home:tab:${tab}`, asset);
-  for (const item of metaConfig?.artifacts || []) loadImageAsset(`home:artifact:${item.id}`, item.icon);
-  for (const item of metaConfig?.facilities || []) loadImageAsset(`home:facility:${item.id}`, item.icon);
-  for (const item of metaConfig?.talentTrees || []) loadImageAsset(`home:path:${item.id}`, item.icon);
-  for (const item of metaConfig?.cultivations || []) loadImageAsset(`home:cultivation:${item.id}`, item.icon);
 }
 
 function drawImageCentered(image, x, y, width, height, rotation = 0, alpha = 1) {
@@ -156,7 +177,7 @@ function drawImageCentered(image, x, y, width, height, rotation = 0, alpha = 1) 
 function drawSpriteFitted(key, x, y, size, options = {}) {
   const image = getAsset(key);
   if (!image) return false;
-  const meta = assetMeta.get(key) || { sx: 0, sy: 0, sw: image.width, sh: image.height };
+  const meta = getAssetMeta(key, image);
   const ratio = meta.sw / meta.sh;
   const width = ratio >= 1 ? size : size * ratio;
   const height = ratio >= 1 ? size / ratio : size;
@@ -207,9 +228,19 @@ function assetUrl(file) {
   return file ? `${theme.assetBase || ""}${file}` : "";
 }
 
-function homeImage(file, alt, className = "home-icon") {
+function optimizedAssetUrl(file) {
+  return file ? assetUrl(optimizedAssetFile(file)) : "";
+}
+
+function thumbnailAsset(file) {
+  return file?.endsWith(".png") ? `thumbs/${file.replace(/\.png$/i, ".webp")}` : file;
+}
+
+function homeImage(file, alt, className = "home-icon", fallbackFile = file) {
   if (!file) return "";
-  return `<img class="${className}" src="${assetUrl(file)}" alt="${alt}" loading="lazy" decoding="async" onerror="this.remove()">`;
+  const optimized = optimizedAssetUrl(file);
+  const fallback = assetUrl(fallbackFile);
+  return `<picture><source srcset="${optimized}" type="image/webp"><img class="${className}" src="${fallback}" alt="${alt}" loading="lazy" decoding="async" onerror="this.remove()"></picture>`;
 }
 
 function renderHomeBanner(tab) {
@@ -1386,12 +1417,12 @@ function upgradeKindLabel(upgrade) {
 function upgradeIcon(upgrade) {
   if (upgrade.kind === "equipment") {
     const tier = Math.min((game.equipment[upgrade.slot]?.tier || 0) + 1, theme.equipmentSlots[upgrade.slot]?.maxTier || 3);
-    return `${theme.assetBase || ""}${theme.equipmentSlots[upgrade.slot]?.assets?.[tier - 1] || ""}`;
+    return theme.equipmentSlots[upgrade.slot]?.assets?.[tier - 1] || "";
   }
-  if (upgrade.id?.includes("coffee")) return `${theme.assetBase || ""}${theme.spells?.coffee?.icon || ""}`;
-  if (upgrade.id?.includes("invoice")) return `${theme.assetBase || ""}${theme.spells?.invoice?.icon || ""}`;
-  if (upgrade.id?.includes("ultimate")) return `${theme.assetBase || ""}${theme.spells?.ultimate?.icon || ""}`;
-  return `${theme.assetBase || ""}${theme.spells?.keyboard?.icon || ""}`;
+  if (upgrade.id?.includes("coffee")) return theme.spells?.coffee?.icon || "";
+  if (upgrade.id?.includes("invoice")) return theme.spells?.invoice?.icon || "";
+  if (upgrade.id?.includes("ultimate")) return theme.spells?.ultimate?.icon || "";
+  return theme.spells?.keyboard?.icon || "";
 }
 
 function upgradeSubtitle(upgrade) {
@@ -1430,7 +1461,7 @@ function openUpgradePanel() {
     button.dataset.kind = upgrade.kind || "fate";
     const icon = upgradeIcon(upgrade);
     button.innerHTML = `
-      ${icon ? `<img class="choice-icon" src="${icon}" alt="">` : ""}
+      ${icon ? homeImage(icon, "", "choice-icon") : ""}
       <span class="choice-meta"><b class="choice-tag">${upgradeKindLabel(upgrade)}</b><b class="choice-rarity">${upgrade.rarity || "黄"}</b></span>
       ${upgradeSubtitle(upgrade)}
       <span class="choice-desc">${upgrade.desc}</span>
@@ -1681,7 +1712,7 @@ function renderCurrencies() {
 function renderHomePanel() {
   if (!metaConfig || !ui.homePanel) return;
   metaState = sanitizeMetaState(metaState);
-  if (metaConfig.homeAssets?.background) ui.homePanel.style.setProperty("--home-bg", `url("${assetUrl(metaConfig.homeAssets.background)}")`);
+  if (metaConfig.homeAssets?.background) ui.homePanel.style.setProperty("--home-bg", `url("${optimizedAssetUrl(metaConfig.homeAssets.background)}")`);
   renderCurrencies();
   for (const button of ui.homeTabs.querySelectorAll("button")) {
     button.classList.toggle("active", button.dataset.tab === activeHomeTab);
@@ -1735,7 +1766,7 @@ function renderChapterTab() {
       const record = metaState.records.chapters[chapter.id];
       return `
         <article class="home-card chapter-card ${locked ? "locked" : ""} ${selected ? "selected" : ""}">
-          ${homeImage(chapter.background || chapter.fallbackBackground, chapter.name, "home-thumb")}
+          ${homeImage(thumbnailAsset(chapter.background || chapter.fallbackBackground), chapter.name, "home-thumb", chapter.background || chapter.fallbackBackground)}
           <div class="home-card-body">
             <h2>${chapter.name}</h2>
             <p>${chapter.desc}</p>
@@ -2002,25 +2033,6 @@ function drawGrid(rect) {
     ctx.drawImage(background, (rect.width - width) / 2, (rect.height - height) / 2, width, height);
     ctx.restore();
   }
-  const step = 64;
-  const left = game.camera.x - rect.width / 2;
-  const top = game.camera.y - rect.height / 2;
-  ctx.strokeStyle = "rgba(255,255,255,0.045)";
-  ctx.lineWidth = 1;
-  for (let x = Math.floor(left / step) * step; x < left + rect.width + step; x += step) {
-    const sx = x - left;
-    ctx.beginPath();
-    ctx.moveTo(sx, 0);
-    ctx.lineTo(sx, rect.height);
-    ctx.stroke();
-  }
-  for (let y = Math.floor(top / step) * step; y < top + rect.height + step; y += step) {
-    const sy = y - top;
-    ctx.beginPath();
-    ctx.moveTo(0, sy);
-    ctx.lineTo(rect.width, sy);
-    ctx.stroke();
-  }
 }
 
 function toScreen(entity, rect) {
@@ -2140,15 +2152,17 @@ function drawRealmAura(p, realm, size) {
 function drawPlayer(rect) {
   const p = toScreen(game.player, rect);
   const pulse = game.player.invincible > 0 ? Math.sin(performance.now() / 40) * 0.28 + 0.72 : 1;
-  const realm = theme.heroRealms?.[realmIndex(game.player.level)];
+  const heroIndex = realmIndex(game.player.level);
+  const realm = theme.heroRealms?.[heroIndex];
+  if (realm?.asset) loadImageAsset(`hero:${heroIndex}`, realm.asset);
   const fxProgress = game.breakthroughFx ? clamp(game.breakthroughFx.age / game.breakthroughFx.life, 0, 1) : 1;
   const fxScale = game.breakthroughFx ? 1 + Math.sin((1 - fxProgress) * Math.PI) * 0.18 : 1;
-  const heroSize = game.player.radius * 5.05 * fxScale;
+  const heroSize = game.player.radius * PLAYER_SPRITE_SCALE * fxScale;
   drawRealmAura(p, realm, heroSize);
   drawPlayerEquipmentLayers(p, "under");
-  const sprite = getAsset(`hero:${realmIndex(game.player.level)}`) || getAsset("player");
+  const sprite = getAsset(`hero:${heroIndex}`) || getAsset("player");
   if (sprite) {
-    drawSpriteFitted(`hero:${realmIndex(game.player.level)}`, p.x, p.y, heroSize, {
+    drawSpriteFitted(getAsset(`hero:${heroIndex}`) ? `hero:${heroIndex}` : "player", p.x, p.y, heroSize, {
       alpha: pulse,
       shadowColor: realm?.auraColor || "#8ef7ff",
       shadowBlur: 12,
@@ -2192,6 +2206,8 @@ function drawPlayerEquipmentLayers(p, layer) {
     const tier = game.equipment?.[slot]?.tier || 0;
     if (!tier) continue;
     const key = `equip:${slot}:${tier}`;
+    const asset = slotConfig.assets?.[tier - 1];
+    if (asset) loadImageAsset(key, asset);
     const image = getAsset(key);
     if (!image) continue;
     const strength = 0.72 + tier * 0.16;
@@ -2200,7 +2216,7 @@ function drawPlayerEquipmentLayers(p, layer) {
     const orbit = slot === "artifact" ? Math.sin(time / 520) * 6 : 0;
     const x = p.x + anchor.x + orbit;
     const y = p.y + anchor.y + bob;
-    const size = game.player.radius * 5.05 * (slotConfig.renderScale || 0.65) * strength;
+    const size = game.player.radius * PLAYER_SPRITE_SCALE * (slotConfig.renderScale || 0.65) * strength;
     const color = tier >= 3 ? "#fff6bf" : tier === 2 ? "#b9f3ff" : "#8dffba";
 
     ctx.save();
@@ -2333,7 +2349,7 @@ function drawEnemy(enemy, rect) {
   const bossScale = enemy.type === "boss" ? game.chapter?.bossMechanics?.displayScale || 1.28 : 1;
   if (sprite) {
     const key = enemy.assetKey || `enemy:${enemy.type}`;
-    drawSpriteFitted(key, p.x, p.y, enemy.radius * 3.7 * bossScale, {
+    drawSpriteFitted(key, p.x, p.y, enemy.radius * ENEMY_SPRITE_SCALE * bossScale, {
       alpha: enemy.hitFlash > 0 ? 0.72 : 1,
       shadowColor: enemy.type === "boss" ? game.chapter?.bossMechanics?.auraColor || enemy.color : undefined,
       shadowBlur: enemy.type === "boss" ? 18 : 0,
