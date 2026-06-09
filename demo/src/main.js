@@ -54,6 +54,7 @@ const pointer = {
 
 const rand = (min, max) => min + Math.random() * (max - min);
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+const positiveModulo = (value, size) => ((value % size) + size) % size;
 const distance = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
 const normalize = (x, y) => {
   const length = Math.hypot(x, y) || 1;
@@ -2025,13 +2026,93 @@ function drawGrid(rect) {
   ctx.fillStyle = theme.background?.tint || "#202832";
   ctx.fillRect(0, 0, rect.width, rect.height);
   if (background) {
-    const scale = Math.max(rect.width / background.width, rect.height / background.height);
-    const width = background.width * scale;
-    const height = background.height * scale;
-    ctx.save();
-    ctx.globalAlpha = bg ? 0.46 : 0.22;
-    ctx.drawImage(background, (rect.width - width) / 2, (rect.height - height) / 2, width, height);
-    ctx.restore();
+    drawTiledBackground(background, rect, bg ? 0.58 : 0.3);
+  }
+  drawWorldReferenceTexture(rect);
+}
+
+function drawTiledBackground(background, rect, alpha) {
+  const configuredScale = theme.background?.tileScale;
+  const scale = configuredScale ?? clamp(rect.height / background.height, 0.58, 0.78);
+  const width = Math.max(1, background.width * scale);
+  const height = Math.max(1, background.height * scale);
+  const offsetX = positiveModulo(-game.camera.x + rect.width / 2, width);
+  const offsetY = positiveModulo(-game.camera.y + rect.height / 2, height);
+
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  for (let x = offsetX - width; x < rect.width + width; x += width) {
+    for (let y = offsetY - height; y < rect.height + height; y += height) {
+      ctx.drawImage(background, x, y, width, height);
+    }
+  }
+  ctx.restore();
+}
+
+function drawWorldReferenceTexture(rect) {
+  const minor = 160;
+  const major = 320;
+  const offsetX = positiveModulo(-game.camera.x + rect.width / 2, minor);
+  const offsetY = positiveModulo(-game.camera.y + rect.height / 2, minor);
+  ctx.save();
+  ctx.lineWidth = 1;
+  for (let x = offsetX - minor; x < rect.width + minor; x += minor) {
+    const worldX = Math.round(game.camera.x - rect.width / 2 + x);
+    const isMajor = Math.abs(positiveModulo(worldX, major)) < 2;
+    ctx.strokeStyle = isMajor ? "rgba(185, 231, 255, 0.12)" : "rgba(185, 231, 255, 0.055)";
+    ctx.beginPath();
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x, rect.height);
+    ctx.stroke();
+  }
+  for (let y = offsetY - minor; y < rect.height + minor; y += minor) {
+    const worldY = Math.round(game.camera.y - rect.height / 2 + y);
+    const isMajor = Math.abs(positiveModulo(worldY, major)) < 2;
+    ctx.strokeStyle = isMajor ? "rgba(244, 215, 120, 0.105)" : "rgba(244, 215, 120, 0.05)";
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(rect.width, y);
+    ctx.stroke();
+  }
+  drawGroundMotifs(rect);
+  ctx.restore();
+}
+
+function motifHash(x, y) {
+  const n = Math.sin(x * 127.1 + y * 311.7) * 43758.5453123;
+  return n - Math.floor(n);
+}
+
+function drawGroundMotifs(rect) {
+  const cell = 280;
+  const left = game.camera.x - rect.width / 2;
+  const top = game.camera.y - rect.height / 2;
+  const startX = Math.floor(left / cell) - 1;
+  const endX = Math.floor((game.camera.x + rect.width / 2) / cell) + 1;
+  const startY = Math.floor(top / cell) - 1;
+  const endY = Math.floor((game.camera.y + rect.height / 2) / cell) + 1;
+
+  for (let gx = startX; gx <= endX; gx += 1) {
+    for (let gy = startY; gy <= endY; gy += 1) {
+      const h = motifHash(gx, gy);
+      if (h < 0.34) continue;
+      const worldX = gx * cell + cell * (0.18 + motifHash(gx + 13, gy) * 0.64);
+      const worldY = gy * cell + cell * (0.2 + motifHash(gx, gy + 17) * 0.6);
+      const screenX = worldX - game.camera.x + rect.width / 2;
+      const screenY = worldY - game.camera.y + rect.height / 2;
+      const radius = 5 + h * 9;
+      ctx.strokeStyle = h > 0.72 ? "rgba(142, 247, 255, 0.16)" : "rgba(255, 238, 188, 0.12)";
+      ctx.lineWidth = 1.4;
+      ctx.beginPath();
+      ctx.ellipse(screenX, screenY, radius * 1.6, radius * 0.58, h * Math.PI, 0, Math.PI * 2);
+      ctx.stroke();
+      if (h > 0.82) {
+        ctx.fillStyle = "rgba(255, 238, 188, 0.16)";
+        ctx.beginPath();
+        ctx.arc(screenX, screenY, 2.2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
   }
 }
 
