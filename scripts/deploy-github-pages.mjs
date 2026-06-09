@@ -125,7 +125,18 @@ function enablePages(fullName) {
   const current = tryRun("gh", ["api", `repos/${fullName}/pages`, "--jq", ".html_url"]);
   if (current.status === 0) return current.stdout.trim();
 
-  const created = tryRun("gh", ["api", "--method", "POST", `repos/${fullName}/pages`, "-f", "build_type=workflow", "--jq", ".html_url"]);
+  const created = tryRun("gh", [
+    "api",
+    "--method",
+    "POST",
+    `repos/${fullName}/pages`,
+    "-H",
+    "Accept: application/vnd.github+json",
+    "-f",
+    "build_type=workflow",
+    "--jq",
+    ".html_url",
+  ]);
   if (created.status === 0) return created.stdout.trim();
 
   console.warn("GitHub Pages was not enabled through the API. The workflow may enable it on first deploy, or you can set Pages source to GitHub Actions in repository settings.");
