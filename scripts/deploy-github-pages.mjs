@@ -106,11 +106,14 @@ function ensureRemote() {
   const owner = argValue("--owner") || getCurrentOwner();
   const repoName = argValue("--repo") || slugify(basename(root));
   const fullName = `${owner}/${repoName}`;
-  const visibility = hasArg("--private") ? "--private" : "--public";
+  const privateRepo = hasArg("--private");
+  const visibility = privateRepo ? "--private" : "--public";
 
   const view = tryRun("gh", ["repo", "view", fullName, "--json", "url", "-q", ".url"]);
   if (view.status !== 0) {
     run("gh", ["repo", "create", fullName, visibility, "--description", "HTML5 canvas xianxia survivor demo"]);
+  } else if (!privateRepo) {
+    run("gh", ["repo", "edit", fullName, "--visibility", "public", "--accept-visibility-change-consequences"]);
   }
 
   const url = run("gh", ["repo", "view", fullName, "--json", "url", "-q", ".url"], { capture: true });
