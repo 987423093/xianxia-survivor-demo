@@ -56,6 +56,17 @@ const hudIcons = [
   "hud-xp.png",
   "hud-artifact.png",
 ];
+const uiSheet = "ui-icon-sheet.png";
+const uiSheetSlices = [
+  "currency-spirit-stone.png",
+  "currency-dao.png",
+  "currency-mystic-iron.png",
+  "currency-spirit-essence.png",
+  "currency-thunder-shard.png",
+  "ui-upgrade.png",
+  "ui-unlock.png",
+  "ui-route.png",
+];
 
 await mkdir(demoDir, { recursive: true });
 
@@ -75,6 +86,16 @@ for (const file of maps) {
 for (const file of homeScenes) {
   const source = sourceFor(file);
   if (existsSync(source)) await copyFile(source, join(demoDir, file));
+}
+
+const uiSheetSource = sourceFor(uiSheet);
+if (existsSync(uiSheetSource)) {
+  const slicedDir = join(rawDir, "__ui_sheet_slices__");
+  await mkdir(slicedDir, { recursive: true });
+  sliceSheetIcons(uiSheetSource, slicedDir, uiSheetSlices, 4, 2);
+  for (const file of uiSheetSlices) {
+    processWhiteBackgroundSprite(join(slicedDir, file), join(demoDir, file));
+  }
 }
 
 function processWhiteBackgroundSprite(source, out) {
@@ -144,6 +165,40 @@ img.save(out)
   }
 }
 
+function sliceSheetIcons(source, outDir, files, columns, rows) {
+  const result = spawnSync(
+    python,
+    ["-", source, outDir, JSON.stringify(files), String(columns), String(rows)],
+    {
+      input: `
+from PIL import Image
+import json
+import os
+import sys
+
+src, out_dir, files_json, cols, rows = sys.argv[1], sys.argv[2], sys.argv[3], int(sys.argv[4]), int(sys.argv[5])
+files = json.loads(files_json)
+img = Image.open(src).convert("RGBA")
+w, h = img.size
+cell_w = w // cols
+cell_h = h // rows
+
+for index, name in enumerate(files):
+    col = index % cols
+    row = index // cols
+    left = col * cell_w
+    top = row * cell_h
+    tile = img.crop((left, top, left + cell_w, top + cell_h))
+    tile.save(os.path.join(out_dir, name))
+`,
+      encoding: "utf8",
+    },
+  );
+  if (result.status !== 0) {
+    throw new Error(`Failed to slice ${basename(source)}: ${result.stderr || result.stdout}`);
+  }
+}
+
 for (const file of [...bosses, ...homeIcons, ...hudIcons]) {
   const source = sourceFor(file);
   if (!existsSync(source)) continue;
@@ -155,6 +210,7 @@ const existing = await readdir(demoDir);
 console.log(JSON.stringify({
   copiedMaps: maps.filter((file) => existing.includes(file)),
   copiedHomeScenes: homeScenes.filter((file) => existing.includes(file)),
+  processedUiIcons: uiSheetSlices.filter((file) => existing.includes(file)),
   processedBosses: bosses.filter((file) => existing.includes(file)),
   processedHomeIcons: homeIcons.filter((file) => existing.includes(file)),
   processedHudIcons: hudIcons.filter((file) => existing.includes(file)),

@@ -353,13 +353,19 @@ export function createMetaStore({
   }
 
   function currencyConfig(key) {
-    return metaConfig?.currencies?.[key] || { name: key, color: "#f7f3e8", iconText: key.slice(0, 1) };
+    return metaConfig?.currencies?.[key] || { name: key, color: "#f7f3e8", iconText: key.slice(0, 1), icon: "" };
+  }
+
+  function currencyIconHtml(config, className = "material-token-icon") {
+    if (!config?.icon || !theme.assetBase) return "";
+    return `<img class="${className}" src="${theme.assetBase}${config.icon}" alt="" aria-hidden="true" decoding="async" />`;
   }
 
   function currencyToken(key, value = null, className = "material-token") {
     const config = currencyConfig(key);
     const amount = value === null || value === undefined ? "" : ` ${Math.floor(value)}`;
-    return `<span class="${className}" style="--material-color:${config.color || "#f7f3e8"}"><b>${config.iconText || config.name.slice(0, 1)}</b>${config.name}${amount}</span>`;
+    const icon = currencyIconHtml(config) || `<b class="material-token-glyph">${config.iconText || config.name.slice(0, 1)}</b>`;
+    return `<span class="${className}" style="--material-color:${config.color || "#f7f3e8"}">${icon}<span class="material-token-copy">${config.name}${amount}</span></span>`;
   }
 
   function isUnlocked(kind, id) {

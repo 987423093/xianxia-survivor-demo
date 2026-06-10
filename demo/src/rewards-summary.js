@@ -75,6 +75,7 @@ export function createRewardsSummary({
         return rewardChip({
           title: config.name,
           detail: `预计 ${Math.floor(amount)}`,
+          asset: config.icon || "",
           color: config.color || "#f7f3e8",
           tone: "currency",
           iconText: config.iconText || config.name.slice(0, 1),

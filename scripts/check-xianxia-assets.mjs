@@ -55,6 +55,17 @@ const hudIcons = [
   "hud-xp.png",
   "hud-artifact.png",
 ];
+const uiIcons = [
+  "currency-spirit-stone.png",
+  "currency-dao.png",
+  "currency-mystic-iron.png",
+  "currency-spirit-essence.png",
+  "currency-thunder-shard.png",
+  "ui-upgrade.png",
+  "ui-unlock.png",
+  "ui-route.png",
+];
+const rawSheetSources = Object.fromEntries(uiIcons.map((file) => [file, "ui-icon-sheet.png"]));
 
 function inspectPng(file) {
   if (!existsSync(file)) return null;
@@ -88,6 +99,12 @@ print(json.dumps({
 }
 
 function rawExists(file) {
+  const sheet = rawSheetSources[file];
+  if (sheet) {
+    const directSheet = join(rawDir, sheet);
+    const dot = sheet.lastIndexOf(".");
+    if (existsSync(directSheet) || existsSync(join(rawDir, `${sheet.slice(0, dot)}-1${sheet.slice(dot)}`))) return true;
+  }
   const direct = join(rawDir, file);
   if (existsSync(direct)) return true;
   const dot = file.lastIndexOf(".");
@@ -101,6 +118,7 @@ const expected = [
   ...bosses.map((file) => ({ file, size: "1024x1024", alpha: "transparent" })),
   ...homeIcons.map((file) => ({ file, size: "1024x1024", alpha: "transparent" })),
   ...hudIcons.map((file) => ({ file, size: "1024x1024", alpha: "transparent" })),
+  ...uiIcons.map((file) => ({ file, size: "512x512", alpha: "transparent" })),
 ];
 
 const rows = expected.map(({ file, size: expectedSize, alpha: expectedAlpha }) => {

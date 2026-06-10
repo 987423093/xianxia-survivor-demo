@@ -693,6 +693,7 @@ export const xianxiaTheme = {
         source: "击杀、存活、Boss、灵田加成",
         usage: "天赋树、法宝、洞府设施",
         iconText: "石",
+        icon: "currency-spirit-stone.png",
       },
       dao: {
         name: "道行",
@@ -701,6 +702,7 @@ export const xianxiaTheme = {
         source: "境界、存活、Boss",
         usage: "功法、藏经阁、悟道蒲团",
         iconText: "道",
+        icon: "currency-dao.png",
       },
       mysticIron: {
         name: "玄铁",
@@ -709,6 +711,7 @@ export const xianxiaTheme = {
         source: "精英击杀、Boss 掉落",
         usage: "本命法宝、炼器炉",
         iconText: "铁",
+        icon: "currency-mystic-iron.png",
       },
       spiritEssence: {
         name: "灵蕴",
@@ -717,6 +720,7 @@ export const xianxiaTheme = {
         source: "突破、修为收集、Boss 掉落",
         usage: "功法升级",
         iconText: "蕴",
+        icon: "currency-spirit-essence.png",
       },
       thunderShard: {
         name: "雷纹",
@@ -725,7 +729,13 @@ export const xianxiaTheme = {
         source: "雷劫天门 Boss",
         usage: "雷池、高阶雷法",
         iconText: "雷",
+        icon: "currency-thunder-shard.png",
       },
+    },
+    uiIcons: {
+      upgrade: "ui-upgrade.png",
+      unlock: "ui-unlock.png",
+      route: "ui-route.png",
     },
     homeAssets: {
       background: "home-dongfu-bg.png",

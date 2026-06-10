@@ -28,6 +28,7 @@ export function createRunRuntime({
   isCompactHud,
   compactRealmLabel,
   realmLabel,
+  getUiMode = () => "desktop",
   homeController,
   activeBuildSynergies = () => [],
   openUpgradePanel = () => {},
@@ -1391,7 +1392,12 @@ export function createRunRuntime({
   }
 
   function updateUi() {
+    const mobileBossIntroActive = getUiMode() === "mobile"
+      && Boolean(game.bossIntro)
+      && (game.bossIntro.age || 0) < Math.max(0, (game.bossIntro.life || 0) - 0.12);
+    if (ui.body) ui.body.dataset.bossIntro = mobileBossIntroActive ? "active" : "idle";
     setHudMetric(ui.timer, "timer", formatTime(game.time), `时间 ${formatTime(game.time)}`);
+    setHudMetric(ui.mobileTimer, "timer", formatTime(game.time), `时间 ${formatTime(game.time)}`);
     const compactHud = isCompactHud();
     setHudMetric(ui.level, "realm", compactHud ? compactRealmLabel(game.player.level) : realmLabel(game.player.level), `境界 ${realmLabel(game.player.level)}`);
     setHudMetric(ui.kills, "kills", compactHud ? `斩${game.killCount}` : `${theme.copy?.kills || "击退"} ${game.killCount}`, `${theme.copy?.kills || "击退"} ${game.killCount}`);
@@ -1403,16 +1409,34 @@ export function createRunRuntime({
       ? `${activeWeapons[0].name.slice(0, 2)}${activeWeapons[0].level}${activeWeapons.length > 1 ? `+${activeWeapons.length - 1}` : ""}`
       : weaponText;
     setHudMetric(ui.weapon, "weapon", compactHud ? compactWeaponText : weaponText, `功法 ${weaponText}`);
+    setHudMetric(ui.mobileLevel, "realm", compactRealmLabel(game.player.level), `境界 ${realmLabel(game.player.level)}`);
+    setHudMetric(ui.mobileKills, "kills", `斩${game.killCount}`, `${theme.copy?.kills || "击退"} ${game.killCount}`);
+    setHudMetric(ui.mobileWeapon, "weapon", compactWeaponText || "未习功法", `功法 ${weaponText || "未习功法"}`);
     const dashReady = game.player.dashCooldown <= 0;
     const dashText = dashReady ? "闪避" : `${game.player.dashCooldown.toFixed(1)}s`;
     setHudMetric(ui.dashBtn, "movement", dashText, dashReady ? "闪避可用" : `闪避冷却 ${dashText}`);
+    setHudMetric(ui.mobileDashBtn, "movement", dashText, dashReady ? "闪避可用" : `闪避冷却 ${dashText}`);
+    setHudMetric(ui.mobileHomeBtn, "home", "洞府", "洞府");
+    setHudMetric(ui.mobilePauseBtn, "pause", "暂停", "暂停");
+    setHudMetric(ui.mobileGrowthBtn, "realm", "成长", "成长信息");
     ui.dashBtn?.classList.toggle("cooling", !dashReady);
+    ui.mobileDashBtn?.classList.toggle("cooling", !dashReady);
     if (ui.dashBtn) ui.dashBtn.disabled = game.state !== "playing";
+    if (ui.mobileDashBtn) ui.mobileDashBtn.disabled = game.state !== "playing";
     ui.hpBar.style.width = `${clamp((game.player.hp / game.player.maxHp) * 100, 0, 100)}%`;
     if (ui.energyBar) ui.energyBar.style.width = `${clamp(((game.energy.value || 0) / (game.energy.max || 100)) * 100, 0, 100)}%`;
     ui.xpBar.style.width = `${clamp((game.player.xp / game.player.nextXp) * 100, 0, 100)}%`;
+    if (ui.mobileHpBar) ui.mobileHpBar.style.width = `${clamp((game.player.hp / game.player.maxHp) * 100, 0, 100)}%`;
+    if (ui.mobileEnergyBar) ui.mobileEnergyBar.style.width = `${clamp(((game.energy.value || 0) / (game.energy.max || 100)) * 100, 0, 100)}%`;
+    if (ui.mobileXpBar) ui.mobileXpBar.style.width = `${clamp((game.player.xp / game.player.nextXp) * 100, 0, 100)}%`;
+    setHudMetric(ui.mobileHpLabel, "hp", `${Math.ceil(game.player.hp)}/${game.player.maxHp}`, `气血 ${Math.ceil(game.player.hp)}/${game.player.maxHp}`);
+    setHudMetric(ui.mobileEnergyLabel, "energy", `${Math.floor(game.energy.value || 0)}/${game.energy.max || 100}`, `灵力 ${Math.floor(game.energy.value || 0)}/${game.energy.max || 100}`);
+    setHudMetric(ui.mobileXpLabel, "xp", `${Math.floor((game.player.xp / game.player.nextXp) * 100)}%`, `修为 ${Math.floor((game.player.xp / game.player.nextXp) * 100)}%`);
     if (ui.equipmentSummary) {
       setHudMetric(ui.equipmentSummary, "artifact", equipmentSummaryText(), `法器 ${equipmentSummaryText()}`);
+    }
+    if (ui.mobileEquipmentSummary) {
+      setHudMetric(ui.mobileEquipmentSummary, "artifact", equipmentSummaryText(), `法器 ${equipmentSummaryText()}`);
     }
     homeController()?.updateQuestBadges?.();
     renderRunGoals();
@@ -1421,9 +1445,12 @@ export function createRunRuntime({
 
     const boss = game.enemies.find((enemy) => enemy.type === "boss");
     ui.bossHud.classList.toggle("hidden", !boss);
+    ui.mobileBossStrip?.classList.toggle("hidden", !boss || getUiMode() !== "mobile");
     if (boss) {
       ui.bossName.textContent = boss.name || game.chapter?.bossName || theme.enemies.boss.name;
       ui.bossBar.style.width = `${clamp((boss.hp / boss.maxHp) * 100, 0, 100)}%`;
+      if (ui.mobileBossName) ui.mobileBossName.textContent = boss.name || game.chapter?.bossName || theme.enemies.boss.name;
+      if (ui.mobileBossBar) ui.mobileBossBar.style.width = `${clamp((boss.hp / boss.maxHp) * 100, 0, 100)}%`;
     }
   }
 

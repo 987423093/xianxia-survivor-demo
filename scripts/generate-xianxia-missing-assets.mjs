@@ -52,6 +52,7 @@ const assets = [
   { name: "hud-energy", size: "1024x1024", background: "opaque" },
   { name: "hud-xp", size: "1024x1024", background: "opaque" },
   { name: "hud-artifact", size: "1024x1024", background: "opaque" },
+  { name: "ui-icon-sheet", size: "2048x1024", background: "opaque" },
 ];
 
 const options = {

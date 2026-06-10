@@ -76,8 +76,8 @@ export function createHomeRenderers(getContext) {
     const missing = Math.max(0, amount - owned);
     return `
       <span class="material-need-amount">
-        <b>总需 ${ctx.currencyToken(key, amount, "material-token route-token")}</b>
-        <small>${missing > 0 ? `缺口 ${ctx.currencyToken(key, missing, "material-token route-token")}` : "当前已覆盖近期升级"}</small>
+        <b>${ctx.uiActionIcon("upgrade", "总需", "hint-inline-icon")}<span>${ctx.currencyToken(key, amount, "material-token route-token")}</span></b>
+        <small>${missing > 0 ? `${ctx.uiActionIcon("route", "缺口", "hint-inline-icon")}${ctx.currencyToken(key, missing, "material-token route-token")}` : "当前已覆盖近期升级"}</small>
       </span>
     `;
   }
@@ -225,7 +225,7 @@ export function createHomeRenderers(getContext) {
             return `
               <article class="home-card material-card ${focused ? "focused" : ""}" data-material="${key}">
                 <div class="material-card-head" style="--material-color:${config.color || "#f7f3e8"}">
-                  <span class="material-card-icon" aria-hidden="true">${config.iconText || config.name.slice(0, 1)}</span>
+                  ${config.icon ? ctx.homeImage(config.icon, config.name, "material-card-icon material-card-icon-img") : `<span class="material-card-icon" aria-hidden="true">${config.iconText || config.name.slice(0, 1)}</span>`}
                   <div class="material-card-title">
                     <h2>${config.name}</h2>
                     <span>${config.desc || ""}</span>
@@ -513,7 +513,8 @@ export function createHomeRenderers(getContext) {
               <small>当前：${level ? ctx.effectSummary(tree.effects, level) : "未修炼"}</small>
               ${ctx.milestoneSummary(tree, level, { kind: "talent", id: tree.id })}
             </div>
-            <button data-action="upgrade-talent" data-id="${tree.id}" ${maxed || !ctx.hasCurrency(cost) ? "disabled" : ""}>${maxed ? "已圆满" : `升级 ${ctx.formatCost(cost)}`}</button>
+            <button class="action-button" data-action="upgrade-talent" data-id="${tree.id}" ${maxed || !ctx.hasCurrency(cost) ? "disabled" : ""}>${ctx.uiActionIcon("upgrade", "升级")}${maxed ? "<span>已圆满</span>" : "<span>升级</span>"}</button>
+            ${!maxed ? `<div class="action-cost-row">${ctx.formatCostTokens(cost, "material-token action-cost-token")}</div>` : ""}
             ${ctx.renderCostHint(cost)}
           </article>
         `;
@@ -539,8 +540,9 @@ export function createHomeRenderers(getContext) {
               ${unlocked ? ctx.milestoneSummary(artifact, level, { kind: "artifact", id: artifact.id }) : ""}
             </div>
             <button data-action="select-artifact" data-id="${artifact.id}" ${!unlocked ? "disabled" : ""}>设为本命</button>
-            <button data-action="upgrade-artifact" data-id="${artifact.id}" ${!unlocked || maxed || !ctx.hasCurrency(cost) ? "disabled" : ""}>${maxed ? "已满级" : `升级 ${ctx.formatCost(cost)}`}</button>
-            ${unlocked ? ctx.renderCostHint(cost) : `<small class="cost-hint">解锁：${ctx.unlockConditionText(artifact.unlock)}</small>`}
+            <button class="action-button" data-action="upgrade-artifact" data-id="${artifact.id}" ${!unlocked || maxed || !ctx.hasCurrency(cost) ? "disabled" : ""}>${ctx.uiActionIcon("upgrade", "升级")}${maxed ? "<span>已满级</span>" : "<span>升级</span>"}</button>
+            ${unlocked && !maxed ? `<div class="action-cost-row">${ctx.formatCostTokens(cost, "material-token action-cost-token")}</div>` : ""}
+            ${unlocked ? ctx.renderCostHint(cost) : `<small class="cost-hint compact-lock">${ctx.uiActionIcon("unlock", "解锁", "hint-inline-icon")}<span>${ctx.unlockConditionText(artifact.unlock)}</span></small>`}
           </article>
         `;
       })
@@ -565,8 +567,9 @@ export function createHomeRenderers(getContext) {
               ${unlocked ? ctx.milestoneSummary(cultivation, level, { kind: "cultivation", id: cultivation.id }) : ""}
             </div>
             <button data-action="select-cultivation" data-id="${cultivation.id}" ${!unlocked ? "disabled" : ""}>设为起手</button>
-            <button data-action="upgrade-cultivation" data-id="${cultivation.id}" ${!unlocked || maxed || !ctx.hasCurrency(cost) ? "disabled" : ""}>${maxed ? "已满级" : `升级 ${ctx.formatCost(cost)}`}</button>
-            ${unlocked ? ctx.renderCostHint(cost) : `<small class="cost-hint">解锁：${ctx.unlockConditionText(cultivation.unlock)}</small>`}
+            <button class="action-button" data-action="upgrade-cultivation" data-id="${cultivation.id}" ${!unlocked || maxed || !ctx.hasCurrency(cost) ? "disabled" : ""}>${ctx.uiActionIcon("upgrade", "升级")}${maxed ? "<span>已满级</span>" : "<span>升级</span>"}</button>
+            ${unlocked && !maxed ? `<div class="action-cost-row">${ctx.formatCostTokens(cost, "material-token action-cost-token")}</div>` : ""}
+            ${unlocked ? ctx.renderCostHint(cost) : `<small class="cost-hint compact-lock">${ctx.uiActionIcon("unlock", "解锁", "hint-inline-icon")}<span>${ctx.unlockConditionText(cultivation.unlock)}</span></small>`}
           </article>
         `;
       })
@@ -589,7 +592,8 @@ export function createHomeRenderers(getContext) {
               <small>当前：${level ? ctx.effectSummary(facility.effects, level) : "未建设"}</small>
               ${ctx.milestoneSummary(facility, level, { kind: "facility", id: facility.id })}
             </div>
-            <button data-action="upgrade-facility" data-id="${facility.id}" ${maxed || !ctx.hasCurrency(cost) ? "disabled" : ""}>${maxed ? "已满级" : `升级 ${ctx.formatCost(cost)}`}</button>
+            <button class="action-button" data-action="upgrade-facility" data-id="${facility.id}" ${maxed || !ctx.hasCurrency(cost) ? "disabled" : ""}>${ctx.uiActionIcon("upgrade", "升级")}${maxed ? "<span>已满级</span>" : "<span>升级</span>"}</button>
+            ${!maxed ? `<div class="action-cost-row">${ctx.formatCostTokens(cost, "material-token action-cost-token")}</div>` : ""}
             ${ctx.renderCostHint(cost)}
           </article>
         `;

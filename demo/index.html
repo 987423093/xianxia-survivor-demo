@@ -8,7 +8,42 @@
   </head>
   <body>
     <main class="game-shell">
+      <div id="bootOverlay" class="boot-overlay hidden" aria-live="polite" aria-busy="true">
+        <div class="boot-card">
+          <div class="boot-mark">云</div>
+          <strong>云栖问道中</strong>
+          <span id="bootPhase">凝聚灵息...</span>
+          <div class="boot-progress"><i id="bootProgress"></i></div>
+        </div>
+      </div>
       <canvas id="game" aria-label="云栖修真录游戏画面"></canvas>
+      <section id="mobileBattleShell" class="mobile-battle-shell hidden" aria-hidden="true">
+        <div id="mobileTopBar" class="mobile-top-bar">
+          <strong class="mobile-brand">云栖</strong>
+          <span id="mobileTimer" class="mobile-pill">00:00</span>
+          <button id="mobilePauseBtn" class="mobile-icon-btn" type="button" aria-label="暂停">暂停</button>
+        </div>
+        <div id="mobileActionRail" class="mobile-action-rail">
+          <button id="mobileGrowthBtn" class="mobile-icon-btn" type="button" aria-label="成长信息" aria-expanded="false">成长</button>
+          <button id="mobileDashBtn" class="mobile-icon-btn" type="button" aria-label="闪避">闪避</button>
+          <button id="mobileHomeBtn" class="mobile-icon-btn" type="button" aria-label="洞府">洞府</button>
+        </div>
+        <div id="mobileGrowthPanel" class="mobile-growth-panel hidden">
+          <span id="mobileLevel"></span>
+          <span id="mobileKills"></span>
+          <span id="mobileWeapon"></span>
+        </div>
+        <div id="mobileBossStrip" class="mobile-boss-strip hidden">
+          <strong id="mobileBossName">天劫雷主</strong>
+          <div class="bar boss-bar"><span id="mobileBossBar"></span></div>
+        </div>
+        <div id="mobileStatusDock" class="mobile-status-dock">
+          <label><span id="mobileHpLabel">气血</span><div class="bar hp"><span id="mobileHpBar"></span></div></label>
+          <label><span id="mobileEnergyLabel">灵力</span><div class="bar energy"><span id="mobileEnergyBar"></span></div></label>
+          <label><span id="mobileXpLabel">修为</span><div class="bar xp"><span id="mobileXpBar"></span></div></label>
+          <small id="mobileEquipmentSummary">未着法器</small>
+        </div>
+      </section>
       <section class="hud top">
         <div class="brand">
           <strong>云栖修真录</strong>
@@ -93,15 +128,20 @@
           </nav>
           <section id="homeContent" class="home-content"></section>
           <footer class="home-actions">
-            <button id="startRunBtn" type="button">入世斩妖</button>
-            <button id="closeHomeBtn" type="button">返回战斗</button>
+            <div class="home-primary-actions">
+              <button id="startRunBtn" type="button">入世斩妖</button>
+              <button id="closeHomeBtn" type="button">返回战斗</button>
+            </div>
             <div class="save-tools" aria-label="存档工具">
-              <div>
-                <button id="exportSaveBtn" class="secondary" type="button">导出存档</button>
-                <button id="importSaveBtn" class="secondary" type="button">导入存档</button>
+              <button id="saveToolsToggleBtn" class="secondary save-tools-toggle" type="button" aria-expanded="false">存档工具</button>
+              <div id="saveToolsBody" class="save-tools-body">
+                <div>
+                  <button id="exportSaveBtn" class="secondary" type="button">导出存档</button>
+                  <button id="importSaveBtn" class="secondary" type="button">导入存档</button>
+                </div>
+                <textarea id="saveDataBox" aria-label="存档 JSON" placeholder="导出的存档会显示在这里，也可以粘贴 JSON 后导入"></textarea>
+                <small id="saveStatus" aria-live="polite"></small>
               </div>
-              <textarea id="saveDataBox" aria-label="存档 JSON" placeholder="导出的存档会显示在这里，也可以粘贴 JSON 后导入"></textarea>
-              <small id="saveStatus" aria-live="polite"></small>
             </div>
           </footer>
         </div>

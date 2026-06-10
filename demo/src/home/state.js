@@ -12,7 +12,10 @@ export function createHomeState({
   return {
     activeTab: "chapters",
     previousGameState: "playing",
+    mobileGrowthOpen: false,
+    saveToolsOpen: false,
     focusedMaterials: [],
+    preloadedTabs: new Set(),
     targetMaterial: debugTargetMaterial,
     targetMaterialMode: debugTargetMaterial
       ? (debugTargetMaterialMode === "unlock" ? "unlock" : "farm")

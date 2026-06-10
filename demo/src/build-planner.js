@@ -112,6 +112,16 @@ export function createBuildPlanner({
     return `${selectedCultivation()?.name || "无功法"}偏向 ${spellName}`;
   }
 
+  function uiActionIcon(name, label, className = "action-icon") {
+    const file = metaConfig?.uiIcons?.[name];
+    return file ? homeImage(file, label, className) : "";
+  }
+
+  function actionCostTokens(cost = {}, className = "material-token action-cost-token") {
+    const entries = Object.entries(cost || {}).filter(([, value]) => value > 0);
+    return entries.length ? entries.map(([key, value]) => currencyToken(key, value, className)).join("") : "";
+  }
+
   function chooseUpgrades() {
     if (!theme.spellUpgrades || !theme.equipmentUpgrades) {
       const pool = [...theme.upgrades].sort(() => Math.random() - 0.5);
@@ -475,20 +485,24 @@ export function createBuildPlanner({
     const unlockTarget = route && routeLocked ? materialRouteUnlockTarget(route, difficulty) : null;
     const routeButton = route
       ? `<button
+          class="inline-action-button"
           data-action="${routeLocked ? "unlock-material-route" : "farm-material-route"}"
           data-id="${route.id}"
           data-material="${material}"
           data-difficulty="${difficulty?.id || ""}"
           ${unlockTarget ? `data-target-chapter="${unlockTarget.chapterId}" data-target-difficulty="${unlockTarget.difficultyId}"` : ""}
           type="button"
-        >${routeLocked ? "去解锁" : `去刷${route.name}`}</button>`
+        >${uiActionIcon(routeLocked ? "unlock" : "route", routeLocked ? "解锁路线" : "刷材料")}<span>${routeLocked ? "解锁路线" : "刷材料"}</span></button>`
       : "";
     return `
       <div class="cost-hint">
-        <span>缺 ${formatCost(missing)}${recommendations.length ? ` · ${recommendations.join(" / ")}` : ""}</span>
+        <span class="cost-hint-copy">
+          ${uiActionIcon("upgrade", "缺口", "hint-inline-icon")}
+          <span>${actionCostTokens(missing)}${recommendations.length ? `<small>推荐 ${recommendations.join(" / ")}</small>` : ""}</span>
+        </span>
         <div class="cost-hint-actions">
           ${routeButton}
-          <button data-action="open-tab" data-tab="materials" data-focus-materials="${missingKeys.join(",")}" type="button">看材料</button>
+          <button class="inline-action-button" data-action="open-tab" data-tab="materials" data-focus-materials="${missingKeys.join(",")}" type="button">${uiActionIcon("route", "看材料")}<span>看材料</span></button>
         </div>
       </div>
     `;

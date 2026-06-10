@@ -29,11 +29,51 @@ const debugTargetMaterialDifficulty = params.get("debugMaterialDifficulty") || "
 const requestedChapter = params.get("chapter") || "";
 const requestedDifficulty = params.get("difficulty") || "";
 const theme = themes[requestedTheme] || themes.xianxia;
+const MOBILE_MAX_WIDTH = 720;
+const HOME_TAB_GLYPHS = {
+  chapters: "章",
+  start: "启",
+  journey: "历",
+  materials: "材",
+  quests: "赏",
+  bestiary: "鉴",
+  talents: "赋",
+  artifacts: "宝",
+  cultivation: "功",
+  facilities: "府",
+};
 
 const canvas = document.querySelector("#game");
 const ctx = canvas.getContext("2d");
 
 const ui = {
+  body: document.body,
+  bootOverlay: document.querySelector("#bootOverlay"),
+  bootPhase: document.querySelector("#bootPhase"),
+  bootProgress: document.querySelector("#bootProgress"),
+  mobileBattleShell: document.querySelector("#mobileBattleShell"),
+  mobileTopBar: document.querySelector("#mobileTopBar"),
+  mobileTimer: document.querySelector("#mobileTimer"),
+  mobilePauseBtn: document.querySelector("#mobilePauseBtn"),
+  mobileActionRail: document.querySelector("#mobileActionRail"),
+  mobileGrowthBtn: document.querySelector("#mobileGrowthBtn"),
+  mobileDashBtn: document.querySelector("#mobileDashBtn"),
+  mobileHomeBtn: document.querySelector("#mobileHomeBtn"),
+  mobileGrowthPanel: document.querySelector("#mobileGrowthPanel"),
+  mobileLevel: document.querySelector("#mobileLevel"),
+  mobileKills: document.querySelector("#mobileKills"),
+  mobileWeapon: document.querySelector("#mobileWeapon"),
+  mobileBossStrip: document.querySelector("#mobileBossStrip"),
+  mobileBossName: document.querySelector("#mobileBossName"),
+  mobileBossBar: document.querySelector("#mobileBossBar"),
+  mobileStatusDock: document.querySelector("#mobileStatusDock"),
+  mobileHpLabel: document.querySelector("#mobileHpLabel"),
+  mobileEnergyLabel: document.querySelector("#mobileEnergyLabel"),
+  mobileXpLabel: document.querySelector("#mobileXpLabel"),
+  mobileHpBar: document.querySelector("#mobileHpBar"),
+  mobileEnergyBar: document.querySelector("#mobileEnergyBar"),
+  mobileXpBar: document.querySelector("#mobileXpBar"),
+  mobileEquipmentSummary: document.querySelector("#mobileEquipmentSummary"),
   timer: document.querySelector("#timer"),
   level: document.querySelector("#level"),
   kills: document.querySelector("#kills"),
@@ -80,6 +120,9 @@ const ui = {
   importSaveBtn: document.querySelector("#importSaveBtn"),
   saveDataBox: document.querySelector("#saveDataBox"),
   saveStatus: document.querySelector("#saveStatus"),
+  saveTools: document.querySelector(".save-tools"),
+  saveToolsToggleBtn: document.querySelector("#saveToolsToggleBtn"),
+  saveToolsBody: document.querySelector("#saveToolsBody"),
 };
 
 const keys = new Set();
@@ -106,6 +149,10 @@ const {
   getAsset,
   canUseGeometryFallback,
   preloadThemeAssets,
+  preloadCriticalAssets,
+  preloadBattleDeferredAssets,
+  preloadHomeAssetsForTab,
+  waitForAssetKeys,
   drawImageCentered,
   drawSpriteFitted,
 } = createAssetManager({ theme, ctx, clamp });
@@ -124,6 +171,7 @@ let runEvents;
 let questsGoals;
 let rewardsSummary;
 let questState = () => ({ progress: { value: 0, target: 1 }, claimed: false, complete: false, claimable: false });
+let uiMode = "desktop";
 
 const metaStore = createMetaStore({
   theme,
@@ -219,8 +267,75 @@ function setQuestBadge(element, count, label = "可领取悬赏") {
   element.appendChild(badge);
 }
 
+function isPortraitMobile() {
+  const narrow = window.matchMedia?.(`(max-width: ${MOBILE_MAX_WIDTH}px)`)?.matches ?? window.innerWidth <= MOBILE_MAX_WIDTH;
+  const portrait = window.matchMedia?.("(orientation: portrait)")?.matches ?? window.innerHeight >= window.innerWidth;
+  return narrow && portrait;
+}
+
+function currentUiMode() {
+  return uiMode;
+}
+
+function syncGrowthPanel() {
+  ui.mobileGrowthPanel?.classList.toggle("hidden", !homeState.mobileGrowthOpen || currentUiMode() !== "mobile");
+  ui.mobileGrowthBtn?.setAttribute("aria-expanded", String(homeState.mobileGrowthOpen));
+}
+
+function updateUiMode() {
+  uiMode = isPortraitMobile() ? "mobile" : "desktop";
+  ui.body.dataset.uiMode = uiMode;
+  ui.body.dataset.orientation = window.innerHeight >= window.innerWidth ? "portrait" : "landscape";
+  ui.mobileBattleShell?.classList.toggle("hidden", uiMode !== "mobile");
+  ui.mobileBattleShell?.setAttribute("aria-hidden", String(uiMode !== "mobile"));
+  if (uiMode !== "mobile") {
+    homeState.mobileGrowthOpen = false;
+    homeState.saveToolsOpen = true;
+  } else if (!ui.homePanel || ui.homePanel.classList.contains("hidden")) {
+    homeState.saveToolsOpen = false;
+  }
+  syncGrowthPanel();
+}
+
+function toggleGrowthPanel(force) {
+  homeState.mobileGrowthOpen = typeof force === "boolean" ? force : !homeState.mobileGrowthOpen;
+  syncGrowthPanel();
+}
+
+function setBootPhase(text, progress = 0) {
+  if (ui.bootPhase) ui.bootPhase.textContent = text;
+  if (ui.bootProgress) ui.bootProgress.style.width = `${clamp(progress, 0, 100)}%`;
+}
+
+function showBootOverlay(visible) {
+  ui.bootOverlay?.classList.toggle("hidden", !visible);
+  ui.bootOverlay?.setAttribute("aria-busy", String(visible));
+}
+
+function scheduleIdle(task) {
+  if (typeof window.requestIdleCallback === "function") {
+    window.requestIdleCallback(() => task(), { timeout: 1200 });
+    return;
+  }
+  window.setTimeout(task, 120);
+}
+
 function isCompactHud() {
-  return window.matchMedia?.("(max-width: 720px)")?.matches;
+  return window.matchMedia?.(`(max-width: ${MOBILE_MAX_WIDTH}px)`)?.matches;
+}
+
+function decorateHomeTabs() {
+  if (!ui.homeTabs) return;
+  for (const button of ui.homeTabs.querySelectorAll("button[data-tab]")) {
+    if (button.dataset.decorated === "1") continue;
+    const label = button.textContent?.trim() || button.dataset.tab || "";
+    button.dataset.decorated = "1";
+    button.dataset.tabLabel = label;
+    button.innerHTML = `
+      <span class="tab-glyph" aria-hidden="true">${HOME_TAB_GLYPHS[button.dataset.tab] || label.slice(0, 1)}</span>
+      <span class="tab-label">${label}</span>
+    `;
+  }
 }
 
 function renderHomeBanner(tab) {
@@ -318,6 +433,7 @@ const runtime = createRunRuntime({
   isCompactHud,
   compactRealmLabel,
   realmLabel,
+  getUiMode: currentUiMode,
   homeController: () => homeController,
   activeBuildSynergies: () => buildPlanner?.activeBuildSynergies?.() || [],
   openUpgradePanel: () => buildPlanner?.openUpgradePanel?.(),
@@ -357,6 +473,7 @@ const runtime = createRunRuntime({
   debugOpenTab,
   debugResultMode,
 });
+const { startRunFromHome } = runtime;
 
 buildPlanner = createBuildPlanner({
   game,
@@ -617,6 +734,10 @@ const {
 } = rewardsSummary;
 
 function getHomeRenderContext() {
+  const uiActionIcon = (name, label, className = "action-icon") => {
+    const file = metaConfig?.uiIcons?.[name];
+    return file ? homeImage(file, label, className) : "";
+  };
   return {
     metaConfig,
     metaState,
@@ -625,6 +746,7 @@ function getHomeRenderContext() {
     homeState,
     clamp,
     homeImage,
+    uiActionIcon,
     thumbnailAsset,
     renderHomeBanner,
     getSelectedDifficulty,
@@ -704,6 +826,8 @@ homeController = createHomeController({
   setMetaState,
   sanitizeMetaState,
   optimizedAssetUrl,
+  assetBase: theme.assetBase || "",
+  preloadHomeAssetsForTab,
   claimableQuestCount,
   setQuestBadge,
   renderers: homeRenderers,
@@ -739,6 +863,7 @@ const handleHomeAction = createHomeActionHandler({
 window.demoGame = {
   snapshot() {
     return {
+      uiMode: currentUiMode(),
       state: game.state,
       time: game.time,
       killCount: game.killCount,
@@ -966,6 +1091,55 @@ function resize() {
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 }
 
+function scheduleDeferredLoads() {
+  if (!theme.assetBase) return;
+  scheduleIdle(() => preloadBattleDeferredAssets());
+  scheduleIdle(() => preloadHomeAssetsForTab(homeState.activeTab));
+}
+
+async function initializeApp() {
+  decorateHomeTabs();
+  updateUiMode();
+  resize();
+
+  const shouldBoot = currentUiMode() === "mobile" && Boolean(theme.assetBase);
+  if (shouldBoot) {
+    showBootOverlay(true);
+    setBootPhase("凝聚灵息...", 18);
+    const keys = [
+      ...preloadCriticalAssets(),
+      ...(metaConfig && !debugBossOnLoad && !debugResolveEventId && !debugFinishOnStart
+        ? preloadHomeAssetsForTab(homeState.activeTab)
+        : []),
+    ];
+    await waitForAssetKeys(keys, 1800);
+    setBootPhase("安置法器...", 72);
+  } else {
+    preloadThemeAssets();
+  }
+
+  runtime.resetGame();
+  if (debugBossOnLoad) {
+    runtime.spawnEnemy("boss");
+    runtime.updateBossRuntime(0.1);
+  } else if (debugResolveEventId && metaConfig) {
+    runtime.runDebugResolvedEventScenario();
+  } else if (debugFinishOnStart && metaConfig) startRunFromHome();
+  else if (metaConfig) {
+    homeController.open("chapters");
+  } else {
+    ui.homeBtn?.classList.add("hidden");
+    ui.mobileHomeBtn?.classList.add("hidden");
+    ui.runGoals?.classList.add("hidden");
+  }
+
+  if (shouldBoot) {
+    setBootPhase(game.state === "home" ? "洞府布阵..." : "结阵入世...", 100);
+    window.setTimeout(() => showBootOverlay(false), 120);
+    scheduleDeferredLoads();
+  }
+}
+
 function loop(now) {
   const dt = Math.min(0.033, (now - game.lastFrame) / 1000);
   game.lastFrame = now;
@@ -974,7 +1148,13 @@ function loop(now) {
   requestAnimationFrame(loop);
 }
 
-window.addEventListener("resize", resize);
+window.addEventListener("resize", () => {
+  resize();
+  updateUiMode();
+  homeController?.syncSaveToolsState?.();
+  if (!ui.homePanel?.classList.contains("hidden")) homeController?.renderHomePanel?.();
+  if (game.player?.maxHp) runtime.updateUi();
+});
 window.addEventListener("keydown", (event) => {
   if (event.key.toLowerCase() === "p" || event.key === "Escape") {
     if (game.state === "playing") runtime.pauseGame();
@@ -994,7 +1174,9 @@ window.addEventListener("keyup", (event) => {
 
 canvas.addEventListener("pointerdown", (event) => {
   const rect = canvas.getBoundingClientRect();
-  if (event.clientX > rect.width * 0.62 || event.clientY < rect.height * 0.36) return;
+  if (currentUiMode() === "mobile") {
+    if (event.clientX > rect.width * 0.48 || event.clientY < rect.height * 0.58) return;
+  } else if (event.clientX > rect.width * 0.62 || event.clientY < rect.height * 0.36) return;
   pointer.active = true;
   pointer.id = event.pointerId;
   pointer.origin = { x: event.clientX - rect.left, y: event.clientY - rect.top };
@@ -1023,10 +1205,14 @@ canvas.addEventListener("pointercancel", () => {
 });
 
 ui.restartBtn.addEventListener("click", () => {
+  toggleGrowthPanel(false);
   if (metaConfig) homeController.open("chapters");
   else runtime.resetGame();
 });
-ui.resultQuestBtn?.addEventListener("click", () => homeController.open("quests"));
+ui.resultQuestBtn?.addEventListener("click", () => {
+  toggleGrowthPanel(false);
+  homeController.open("quests");
+});
 ui.resultNextSteps?.addEventListener("click", (event) => {
   const button = event.target.closest("button[data-action='result-open-tab']");
   if (!button || button.disabled) return;
@@ -1035,23 +1221,45 @@ ui.resultNextSteps?.addEventListener("click", (event) => {
     ? button.dataset.focusMaterials.split(",").filter(Boolean)
     : [];
   homeState.materialPreviewDifficultyId = button.dataset.previewDifficulty || "";
+  toggleGrowthPanel(false);
   homeController.open(button.dataset.tab || "journey");
 });
 ui.pauseBtn.addEventListener("click", runtime.pauseGame);
+ui.mobilePauseBtn?.addEventListener("click", runtime.pauseGame);
 ui.dashBtn?.addEventListener("click", runtime.startDash);
+ui.mobileDashBtn?.addEventListener("click", runtime.startDash);
 ui.growthBtn?.addEventListener("click", () => {
+  if (currentUiMode() === "mobile") {
+    toggleGrowthPanel();
+    return;
+  }
   const stats = ui.growthBtn.closest(".stats");
   const expanded = !stats?.classList.contains("show-growth");
   stats?.classList.toggle("show-growth", expanded);
   ui.growthBtn.setAttribute("aria-expanded", String(expanded));
 });
+ui.mobileGrowthBtn?.addEventListener("click", () => toggleGrowthPanel());
 ui.resumeBtn.addEventListener("click", runtime.resumeGame);
 ui.quickRestartBtn.addEventListener("click", runtime.resetGame);
-ui.homeBtn?.addEventListener("click", () => homeController.open("chapters"));
-ui.startRunBtn?.addEventListener("click", runtime.startRunFromHome);
-ui.closeHomeBtn?.addEventListener("click", homeController.close);
+ui.homeBtn?.addEventListener("click", () => {
+  toggleGrowthPanel(false);
+  homeController.open("chapters");
+});
+ui.mobileHomeBtn?.addEventListener("click", () => {
+  toggleGrowthPanel(false);
+  homeController.open("chapters");
+});
+ui.startRunBtn?.addEventListener("click", startRunFromHome);
+ui.closeHomeBtn?.addEventListener("click", () => {
+  toggleGrowthPanel(false);
+  homeController.close();
+});
 ui.exportSaveBtn?.addEventListener("click", exportMetaSave);
 ui.importSaveBtn?.addEventListener("click", importMetaSave);
+ui.saveToolsToggleBtn?.addEventListener("click", () => {
+  homeState.saveToolsOpen = !homeState.saveToolsOpen;
+  homeController?.syncSaveToolsState?.();
+});
 ui.homeTabs?.addEventListener("click", (event) => {
   const button = event.target.closest("button[data-tab]");
   if (!button) return;
@@ -1073,20 +1281,4 @@ ui.eventChoiceOptions?.addEventListener("click", (event) => {
   selectRunEventChoice(button.dataset.choiceId || "");
 });
 
-resize();
-preloadThemeAssets();
-runtime.resetGame();
-if (debugBossOnLoad) {
-  runtime.spawnEnemy("boss");
-  runtime.updateBossRuntime(0.1);
-} else if (debugResolveEventId && metaConfig) {
-  runtime.runDebugResolvedEventScenario();
-} else if (debugFinishOnStart && metaConfig) {
-  runtime.startRunFromHome();
-} else if (metaConfig) {
-  homeController.open("chapters");
-} else {
-  ui.homeBtn?.classList.add("hidden");
-  ui.runGoals?.classList.add("hidden");
-}
-requestAnimationFrame(loop);
+initializeApp().finally(() => requestAnimationFrame(loop));
