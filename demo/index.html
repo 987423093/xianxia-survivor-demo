@@ -18,6 +18,8 @@
           <span id="level">炼气 1层</span>
           <span id="kills">斩妖 0</span>
           <span id="weapon">飞剑诀 1重</span>
+          <button id="growthBtn" class="icon-btn growth-btn" type="button" aria-label="局内成长" aria-expanded="false">成长</button>
+          <button id="dashBtn" class="icon-btn dash-btn" type="button" aria-label="闪避">闪避</button>
           <button id="homeBtn" class="icon-btn home-btn" type="button" aria-label="洞府">洞府</button>
           <button id="pauseBtn" class="icon-btn" type="button" aria-label="暂停">暂停</button>
         </div>
@@ -27,6 +29,8 @@
           <strong id="bossName">天劫雷主</strong>
           <div class="bar boss-bar"><span id="bossBar"></span></div>
         </div>
+        <div id="runGoals" class="run-goals hidden"></div>
+        <div id="goalToast" class="goal-toast hidden"></div>
         <div class="status-panel">
           <label><span id="hpLabel">气血</span><div class="bar hp"><span id="hpBar"></span></div></label>
           <label><span id="energyLabel">灵力</span><div class="bar energy"><span id="energyBar"></span></div></label>
@@ -37,6 +41,7 @@
       <div id="pausePanel" class="overlay hidden">
         <div class="dialog compact">
           <h1>暂停中</h1>
+          <div id="pauseBuildSummary" class="pause-build-summary"></div>
           <button id="resumeBtn" type="button">继续割草</button>
           <button id="quickRestartBtn" type="button">重新开始</button>
         </div>
@@ -48,11 +53,20 @@
           <div id="upgradeChoices" class="choices"></div>
         </div>
       </div>
+      <div id="eventChoicePanel" class="overlay hidden">
+        <div class="dialog">
+          <h1 id="eventChoiceTitle">奇遇抉择</h1>
+          <p id="eventChoiceSubtitle"></p>
+          <div id="eventChoiceOptions" class="choices"></div>
+        </div>
+      </div>
       <div id="resultPanel" class="overlay hidden">
         <div class="dialog">
           <h1>本次问道结算</h1>
           <p id="resultText"></p>
           <div id="rewardText" class="reward-text"></div>
+          <div id="resultNextSteps" class="result-next-steps hidden"></div>
+          <button id="resultQuestBtn" class="secondary hidden" type="button">查看悬赏</button>
           <button id="restartBtn" type="button">再入洞府</button>
         </div>
       </div>
@@ -68,6 +82,10 @@
           <nav id="homeTabs" class="home-tabs" aria-label="洞府页签">
             <button data-tab="chapters" type="button">章节</button>
             <button data-tab="start" type="button">开局</button>
+            <button data-tab="journey" type="button">历练</button>
+            <button data-tab="materials" type="button">材料</button>
+            <button data-tab="quests" type="button">悬赏</button>
+            <button data-tab="bestiary" type="button">图鉴</button>
             <button data-tab="talents" type="button">天赋</button>
             <button data-tab="artifacts" type="button">法宝</button>
             <button data-tab="cultivation" type="button">功法</button>
@@ -77,11 +95,19 @@
           <footer class="home-actions">
             <button id="startRunBtn" type="button">入世斩妖</button>
             <button id="closeHomeBtn" type="button">返回战斗</button>
+            <div class="save-tools" aria-label="存档工具">
+              <div>
+                <button id="exportSaveBtn" class="secondary" type="button">导出存档</button>
+                <button id="importSaveBtn" class="secondary" type="button">导入存档</button>
+              </div>
+              <textarea id="saveDataBox" aria-label="存档 JSON" placeholder="导出的存档会显示在这里，也可以粘贴 JSON 后导入"></textarea>
+              <small id="saveStatus" aria-live="polite"></small>
+            </div>
           </footer>
         </div>
       </div>
       <div class="hint">
-        WASD / 方向键移动，移动端拖动左下角摇杆区域，P / Esc 入定
+        WASD / 方向键移动，Space / Shift 闪避，移动端拖动左下角摇杆区域，P / Esc 入定
       </div>
     </main>
     <script>

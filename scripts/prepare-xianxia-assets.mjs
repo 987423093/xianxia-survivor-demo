@@ -44,6 +44,18 @@ const homeIcons = [
   "path-movement.png",
   "path-forge.png",
 ];
+const hudIcons = [
+  "hud-timer.png",
+  "hud-realm.png",
+  "hud-kill.png",
+  "hud-skill.png",
+  "hud-home.png",
+  "hud-pause.png",
+  "hud-hp.png",
+  "hud-energy.png",
+  "hud-xp.png",
+  "hud-artifact.png",
+];
 
 await mkdir(demoDir, { recursive: true });
 
@@ -132,7 +144,7 @@ img.save(out)
   }
 }
 
-for (const file of [...bosses, ...homeIcons]) {
+for (const file of [...bosses, ...homeIcons, ...hudIcons]) {
   const source = sourceFor(file);
   if (!existsSync(source)) continue;
   const out = join(demoDir, file);
@@ -145,4 +157,5 @@ console.log(JSON.stringify({
   copiedHomeScenes: homeScenes.filter((file) => existing.includes(file)),
   processedBosses: bosses.filter((file) => existing.includes(file)),
   processedHomeIcons: homeIcons.filter((file) => existing.includes(file)),
+  processedHudIcons: hudIcons.filter((file) => existing.includes(file)),
 }, null, 2));
