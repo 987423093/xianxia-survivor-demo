@@ -13,6 +13,8 @@ export function createHomeController({
   setMetaState,
   sanitizeMetaState,
   optimizedAssetUrl,
+  assetBase = "",
+  preloadHomeAssetsForTab = () => {},
   claimableQuestCount,
   setQuestBadge,
   renderers,
@@ -23,14 +25,27 @@ export function createHomeController({
     const metaState = getMetaState();
     if (!ui.metaCurrencies || !metaConfig || !metaState) return;
     ui.metaCurrencies.innerHTML = Object.entries(metaConfig.currencies)
-      .map(([key, config]) => `<span class="meta-currency" style="color:${config.color}">${config.name} ${metaState.currencies[key] || 0}</span>`)
+      .map(([key, config]) => `
+        <span class="meta-currency" style="--currency-color:${config.color}">
+          ${config.icon ? `<img class="meta-currency-icon" src="${assetBase}${config.icon}" alt="" aria-hidden="true" decoding="async" />` : `<b class="meta-currency-glyph" aria-hidden="true">${config.iconText || config.name.slice(0, 1)}</b>`}
+          <span class="meta-currency-copy"><small>${config.name}</small><strong>${metaState.currencies[key] || 0}</strong></span>
+        </span>
+      `)
       .join("");
+  }
+
+  function syncSaveToolsState() {
+    if (!ui.saveTools || !ui.saveToolsToggleBtn || !ui.saveToolsBody) return;
+    ui.saveTools.classList.toggle("expanded", homeState.saveToolsOpen);
+    ui.saveToolsToggleBtn.setAttribute("aria-expanded", String(homeState.saveToolsOpen));
+    ui.saveToolsBody.toggleAttribute("hidden", !homeState.saveToolsOpen);
   }
 
   function updateQuestBadges() {
     const metaState = getMetaState();
     const count = metaConfig && metaState ? claimableQuestCount() : 0;
     setQuestBadge(ui.homeBtn, count, "可领取悬赏");
+    setQuestBadge(ui.mobileHomeBtn, count, "可领取悬赏");
     const questTab = ui.homeTabs?.querySelector('button[data-tab="quests"]');
     setQuestBadge(questTab, count, "可领取悬赏");
   }
@@ -42,7 +57,12 @@ export function createHomeController({
     if (metaConfig.homeAssets?.background) {
       ui.homePanel.style.setProperty("--home-bg", `url("${optimizedAssetUrl(metaConfig.homeAssets.background)}")`);
     }
+    if (!homeState.preloadedTabs.has(homeState.activeTab)) {
+      preloadHomeAssetsForTab(homeState.activeTab);
+      homeState.preloadedTabs.add(homeState.activeTab);
+    }
     renderCurrencies();
+    syncSaveToolsState();
     for (const button of ui.homeTabs.querySelectorAll("button")) {
       button.classList.toggle("active", button.dataset.tab === homeState.activeTab);
     }
@@ -55,6 +75,7 @@ export function createHomeController({
     if (!metaConfig || !ui.homePanel) return;
     homeState.previousGameState = game.state === "home" ? homeState.previousGameState : game.state;
     homeState.activeTab = defaultTab;
+    homeState.mobileGrowthOpen = false;
     game.state = "home";
     game.goalTrackingActive = false;
     clearGoalToastTimer();
@@ -82,6 +103,7 @@ export function createHomeController({
   return {
     renderCurrencies,
     updateQuestBadges,
+    syncSaveToolsState,
     renderHomePanel,
     open,
     close,

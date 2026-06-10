@@ -10,6 +10,12 @@ export function createAssetManager({ theme, ctx, clamp }) {
   const imageAssets = new Map();
   const assetMeta = new Map();
 
+  function queueAsset(keys, key, file) {
+    if (!file) return;
+    keys.push(key);
+    loadImageAsset(key, file);
+  }
+
   function computeImageBounds(image) {
     const probe = document.createElement("canvas");
     probe.width = image.naturalWidth || image.width;
@@ -55,21 +61,26 @@ export function createAssetManager({ theme, ctx, clamp }) {
     const assetFile = candidates[candidateIndex];
     if (!assetFile) return;
     const current = imageAssets.get(key);
-    if (current?.sourceFile === file && current?.assetFile === assetFile) return;
+    if (current?.sourceFile === file && current?.assetFile === assetFile) return current.loadPromise;
     assetMeta.delete(key);
     const image = new Image();
     image.decoding = "async";
     image.sourceFile = file;
     image.assetFile = assetFile;
+    image.loadPromise = new Promise((resolve) => {
+      image.addEventListener("load", () => {
+        image.loaded = true;
+        resolve(image);
+      }, { once: true });
+      image.addEventListener("error", () => {
+        image.failed = true;
+        if (candidates[candidateIndex + 1]) resolve(loadImageAsset(key, file, candidateIndex + 1));
+        else resolve(null);
+      }, { once: true });
+    });
     image.src = `${theme.assetBase || ""}${assetFile}`;
-    image.addEventListener("load", () => {
-      image.loaded = true;
-    });
-    image.addEventListener("error", () => {
-      image.failed = true;
-      if (candidates[candidateIndex + 1]) loadImageAsset(key, file, candidateIndex + 1);
-    });
     imageAssets.set(key, image);
+    return image.loadPromise;
   }
 
   function getAsset(key) {
@@ -87,18 +98,96 @@ export function createAssetManager({ theme, ctx, clamp }) {
     return !theme.assetBase || !assetName;
   }
 
-  function preloadThemeAssets() {
-    if (!theme.assetBase) return;
-    loadImageAsset("player", theme.player.asset);
-    loadImageAsset("background", theme.background?.asset);
-    loadImageAsset("background:fallback", theme.background?.fallbackAsset);
-    loadImageAsset("hero:0", theme.heroRealms?.[0]?.asset);
-    for (const [type, enemy] of Object.entries(theme.enemies)) {
-      if (type !== "boss") loadImageAsset(`enemy:${type}`, enemy.asset);
+  async function waitForAssetKeys(keys = [], timeoutMs = 1800) {
+    const pending = [...new Set(keys)]
+      .map((key) => imageAssets.get(key)?.loadPromise)
+      .filter(Boolean);
+    if (!pending.length) return;
+    await Promise.race([
+      Promise.allSettled(pending),
+      new Promise((resolve) => setTimeout(resolve, timeoutMs)),
+    ]);
+  }
+
+  function preloadCriticalAssets() {
+    if (!theme.assetBase) return [];
+    const keys = [];
+    queueAsset(keys, "player", theme.player.asset);
+    queueAsset(keys, "background", theme.background?.asset);
+    queueAsset(keys, "background:fallback", theme.background?.fallbackAsset);
+    queueAsset(keys, "hero:0", theme.heroRealms?.[0]?.asset);
+    for (const [type, enemy] of Object.entries(theme.enemies || {})) {
+      if (type !== "boss") queueAsset(keys, `enemy:${type}`, enemy.asset);
     }
-    for (const [type, weapon] of Object.entries(theme.weapons)) loadImageAsset(`weapon:${type}`, weapon.asset);
-    loadImageAsset("pickup:xp", theme.pickups?.xp?.asset);
-    loadImageAsset("pickup:health", theme.pickups?.health?.asset);
+    for (const [type, weapon] of Object.entries(theme.weapons || {})) queueAsset(keys, `weapon:${type}`, weapon.asset);
+    queueAsset(keys, "pickup:xp", theme.pickups?.xp?.asset);
+    queueAsset(keys, "pickup:health", theme.pickups?.health?.asset);
+    for (const [name, file] of Object.entries(theme.hudIcons || {})) queueAsset(keys, `hud:${name}`, file);
+    return keys;
+  }
+
+  function preloadBattleDeferredAssets() {
+    if (!theme.assetBase) return [];
+    const keys = [];
+    queueAsset(keys, "enemy:boss", theme.enemies?.boss?.asset);
+    for (const [index, hero] of (theme.heroRealms || []).entries()) {
+      queueAsset(keys, `hero:${index}`, hero.asset);
+    }
+    for (const [slot, slotConfig] of Object.entries(theme.equipmentSlots || {})) {
+      for (const [index, file] of (slotConfig.assets || []).entries()) {
+        queueAsset(keys, `equip:${slot}:${index + 1}`, file);
+      }
+    }
+    for (const [name, file] of Object.entries(theme.hudIcons || {})) queueAsset(keys, `hud:${name}`, file);
+    return keys;
+  }
+
+  function preloadHomeAssetsForTab(tab = "chapters") {
+    if (!theme.assetBase) return [];
+    const keys = [];
+    const meta = theme.meta || {};
+    queueAsset(keys, "home:bg", meta.homeAssets?.background);
+    queueAsset(keys, `home:tab:${tab}`, meta.homeAssets?.tabs?.[tab]);
+    if (tab === "chapters" || tab === "journey" || tab === "materials" || tab === "quests") {
+      for (const chapter of meta.chapters || []) {
+        queueAsset(keys, `chapter:bg:${chapter.id}`, chapter.background || chapter.fallbackBackground);
+        queueAsset(keys, `chapter:boss:${chapter.id}`, chapter.bossAsset || chapter.background || chapter.fallbackBackground);
+      }
+    }
+    if (tab === "start" || tab === "artifacts") {
+      for (const artifact of meta.artifacts || []) queueAsset(keys, `artifact:${artifact.id}`, artifact.icon);
+    }
+    if (tab === "start" || tab === "cultivation") {
+      for (const cultivation of meta.cultivations || []) {
+        queueAsset(keys, `cultivation:${cultivation.id}`, cultivation.icon);
+      }
+    }
+    if (tab === "start" || tab === "talents") {
+      for (const tree of meta.talentTrees || []) queueAsset(keys, `talent-tree:${tree.id}`, tree.icon);
+    }
+    if (tab === "facilities") {
+      for (const facility of meta.facilities || []) queueAsset(keys, `facility:${facility.id}`, facility.icon);
+    }
+    if (tab === "bestiary") {
+      for (const chapter of meta.chapters || []) {
+        queueAsset(keys, `bestiary:${chapter.id}`, chapter.bossAsset || chapter.background || chapter.fallbackBackground);
+      }
+    }
+    return keys;
+  }
+
+  function preloadThemeAssets() {
+    const keys = [
+      ...preloadCriticalAssets(),
+      ...preloadBattleDeferredAssets(),
+      ...preloadHomeAssetsForTab("chapters"),
+      ...preloadHomeAssetsForTab("start"),
+      ...preloadHomeAssetsForTab("artifacts"),
+      ...preloadHomeAssetsForTab("cultivation"),
+      ...preloadHomeAssetsForTab("facilities"),
+      ...preloadHomeAssetsForTab("bestiary"),
+    ];
+    return [...new Set(keys)];
   }
 
   function drawImageCentered(image, x, y, width, height, rotation = 0, alpha = 1) {
@@ -150,6 +239,10 @@ export function createAssetManager({ theme, ctx, clamp }) {
     getAsset,
     canUseGeometryFallback,
     preloadThemeAssets,
+    preloadCriticalAssets,
+    preloadBattleDeferredAssets,
+    preloadHomeAssetsForTab,
+    waitForAssetKeys,
     drawImageCentered,
     drawSpriteFitted,
   };

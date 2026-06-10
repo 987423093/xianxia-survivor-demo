@@ -9,6 +9,7 @@
     "assets:check": "node scripts/check-xianxia-assets.mjs",
     "config:check": "node scripts/check-xianxia-config.mjs",
     "test:meta": "node scripts/test-xianxia-meta.mjs",
+    "test:mobile": "node scripts/test-mobile-shell.mjs",
     "smoke": "node scripts/smoke-demo.mjs"
   },
   "devDependencies": {}
