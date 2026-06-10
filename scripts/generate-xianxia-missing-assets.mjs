@@ -42,6 +42,16 @@ const assets = [
   { name: "path-body", size: "1024x1024", background: "opaque" },
   { name: "path-movement", size: "1024x1024", background: "opaque" },
   { name: "path-forge", size: "1024x1024", background: "opaque" },
+  { name: "hud-timer", size: "1024x1024", background: "opaque" },
+  { name: "hud-realm", size: "1024x1024", background: "opaque" },
+  { name: "hud-kill", size: "1024x1024", background: "opaque" },
+  { name: "hud-skill", size: "1024x1024", background: "opaque" },
+  { name: "hud-home", size: "1024x1024", background: "opaque" },
+  { name: "hud-pause", size: "1024x1024", background: "opaque" },
+  { name: "hud-hp", size: "1024x1024", background: "opaque" },
+  { name: "hud-energy", size: "1024x1024", background: "opaque" },
+  { name: "hud-xp", size: "1024x1024", background: "opaque" },
+  { name: "hud-artifact", size: "1024x1024", background: "opaque" },
 ];
 
 const options = {
@@ -66,7 +76,7 @@ function valueArg(name) {
 function sizeForAsset(asset) {
   if (asset.name.startsWith("map-") || asset.name === "home-dongfu-bg") return options.mapSize || asset.size;
   if (asset.name.startsWith("home-tab-")) return options.bannerSize || asset.size;
-  if (asset.name.startsWith("artifact-") || asset.name.startsWith("facility-") || asset.name.startsWith("path-")) {
+  if (asset.name.startsWith("artifact-") || asset.name.startsWith("facility-") || asset.name.startsWith("path-") || asset.name.startsWith("hud-")) {
     return options.iconSize || asset.size;
   }
   return options.bossSize || asset.size;

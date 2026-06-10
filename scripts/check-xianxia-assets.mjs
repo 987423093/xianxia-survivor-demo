@@ -43,6 +43,18 @@ const homeIcons = [
   "path-movement.png",
   "path-forge.png",
 ];
+const hudIcons = [
+  "hud-timer.png",
+  "hud-realm.png",
+  "hud-kill.png",
+  "hud-skill.png",
+  "hud-home.png",
+  "hud-pause.png",
+  "hud-hp.png",
+  "hud-energy.png",
+  "hud-xp.png",
+  "hud-artifact.png",
+];
 
 function inspectPng(file) {
   if (!existsSync(file)) return null;
@@ -88,6 +100,7 @@ const expected = [
   ...homeBanners.map((file) => ({ file, size: "1536x640", alpha: "opaque" })),
   ...bosses.map((file) => ({ file, size: "1024x1024", alpha: "transparent" })),
   ...homeIcons.map((file) => ({ file, size: "1024x1024", alpha: "transparent" })),
+  ...hudIcons.map((file) => ({ file, size: "1024x1024", alpha: "transparent" })),
 ];
 
 const rows = expected.map(({ file, size: expectedSize, alpha: expectedAlpha }) => {
