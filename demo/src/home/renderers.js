@@ -261,6 +261,102 @@ export function createHomeRenderers(getContext) {
     `;
   }
 
+  function renderMobileHomeLanding() {
+    const ctx = getContext();
+    const selectedChapter = ctx.getSelectedChapter();
+    const selectedDifficulty = ctx.getSelectedDifficulty();
+    const recommendation = ctx.chapterBuildRecommendation();
+    const nextQuest = ctx.nextQuestGoal();
+    const rewardsSummary = nextQuest
+      ? `${nextQuest.quest.name} · ${ctx.questProgressText(nextQuest.quest, nextQuest.state.progress)}`
+      : `${ctx.claimableQuestCount()} 个悬赏可领取`;
+    return `
+      ${ctx.renderHomeBanner("home")}
+      <div class="mobile-home-landing-hero">
+        <div>
+          <strong>今日洞府策令</strong>
+          <p>先确认章节和构筑，再一键入世。其余情报收进详情页，不让主入口变长。</p>
+        </div>
+        <button data-action="open-mobile-home-section" data-section="more" type="button">查看更多</button>
+      </div>
+      <div class="mobile-home-landing-grid">
+        <article class="home-card mobile-home-card mobile-home-card-primary">
+          <span class="mobile-home-card-kicker">继续开局</span>
+          <h2>${selectedChapter?.name || "未定章节"}</h2>
+          <p>${selectedDifficulty?.name || "未定难度"} · ${selectedChapter?.bossName || "先选章节再入世"}</p>
+          <small>${selectedChapter?.desc || "当前章节尚未选择。"}</small>
+          <div class="mobile-home-card-actions">
+            <button data-action="start-run" type="button">入世斩妖</button>
+            <button data-action="open-mobile-home-section" data-section="chapters" type="button">调整章节</button>
+          </div>
+        </article>
+        <article class="home-card mobile-home-card">
+          <span class="mobile-home-card-kicker">当前构筑</span>
+          <h2>本局起手</h2>
+          <div class="mobile-home-build-summary">
+            ${selectedBuildSummary()}
+          </div>
+          <div class="mobile-home-card-actions">
+            <button data-action="open-mobile-home-section" data-section="build" type="button">调整构筑</button>
+          </div>
+        </article>
+        <article class="home-card mobile-home-card">
+          <span class="mobile-home-card-kicker">可领奖励</span>
+          <h2>${ctx.claimableQuestCount()} 个悬赏待处理</h2>
+          <p>${rewardsSummary}</p>
+          <small>先领掉现成奖励，再决定这一局刷什么。</small>
+          <div class="mobile-home-card-actions">
+            <button data-action="open-mobile-home-section" data-section="quests" type="button">查看悬赏</button>
+          </div>
+        </article>
+        <article class="home-card mobile-home-card">
+          <span class="mobile-home-card-kicker">章节推荐</span>
+          <h2>${recommendation.artifact?.name || "通用构筑"}</h2>
+          <p>${recommendation.reasons?.[0] || "按当前章节和 Boss 机制推荐开局组件。"}</p>
+          <div class="build-tags">${recommendation.tags.map(ctx.styleTagToken).join("")}</div>
+          <div class="mobile-home-card-actions">
+            <button data-action="apply-chapter-recommendation" type="button">套用推荐</button>
+            <button data-action="open-mobile-home-section" data-section="chapters" type="button">看章节详情</button>
+          </div>
+        </article>
+      </div>
+    `;
+  }
+
+  function renderMobileHomeMore() {
+    const ctx = getContext();
+    const rows = [
+      { tab: "journey", title: "历练总览", desc: "看章节首通、成长缺口和下一步刷图建议。" },
+      { tab: "materials", title: "材料路线", desc: "按材料缺口查看章节收益与推荐路线。" },
+      { tab: "bestiary", title: "Boss 图鉴", desc: "查看 Boss 技能、阶段和推荐构筑。" },
+      { tab: "talents", title: "天赋树", desc: "统一查看可升级天赋与里程碑效果。" },
+      { tab: "artifacts", title: "法宝", desc: "切换本命法宝并查看升级成本。" },
+      { tab: "cultivation", title: "功法", desc: "切换起手功法并查看成长收益。" },
+      { tab: "facilities", title: "洞府设施", desc: "查看蒲团、炼丹、藏经阁等局外成长。" },
+    ];
+    return `
+      ${ctx.renderHomeBanner("more")}
+      <section class="mobile-home-more">
+        <div class="mobile-home-more-head">
+          <div>
+            <strong>更多事务</strong>
+            <p>材料、图鉴、成长和存档工具都收在这里，避免首页变成桌面版缩小图。</p>
+          </div>
+          <button data-action="open-mobile-home-section" data-section="home" type="button">回首页</button>
+        </div>
+        <div class="mobile-home-more-grid">
+          ${rows.map((row) => `
+            <article class="home-card mobile-home-more-card">
+              <h2>${row.title}</h2>
+              <p>${row.desc}</p>
+              <button data-action="open-mobile-more-tab" data-tab="${row.tab}" type="button">进入详情</button>
+            </article>
+          `).join("")}
+        </div>
+      </section>
+    `;
+  }
+
   function renderJourneyTab() {
     const ctx = getContext();
     const chapterCount = ctx.metaConfig.chapters?.length || 0;
@@ -385,7 +481,7 @@ export function createHomeRenderers(getContext) {
     const ctx = getContext();
     const selectedDifficulty = ctx.getSelectedDifficulty();
     return `
-      ${ctx.renderHomeBanner("chapters")}
+      ${ctx.renderHomeBanner("bestiary")}
       <section class="bestiary-overview">
         <article class="home-card bestiary-hero">
           <div>
@@ -602,6 +698,8 @@ export function createHomeRenderers(getContext) {
   }
 
   return {
+    mobileHomeLanding: renderMobileHomeLanding,
+    mobileHomeMore: renderMobileHomeMore,
     chapters: renderChapterTab,
     materials: renderMaterialsTab,
     journey: renderJourneyTab,

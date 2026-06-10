@@ -740,15 +740,18 @@ export const xianxiaTheme = {
     homeAssets: {
       background: "home-dongfu-bg.png",
       tabs: {
+        home: "home-tab-home.png",
+        more: "home-tab-more.png",
         chapters: "home-tab-chapters.png",
         start: "home-tab-start.png",
-        journey: "home-tab-chapters.png",
+        journey: "home-tab-journey.png",
         talents: "home-tab-talents.png",
         artifacts: "home-tab-artifacts.png",
         cultivation: "home-tab-cultivation.png",
         facilities: "home-tab-facilities.png",
-        materials: "home-tab-facilities.png",
-        quests: "home-tab-chapters.png",
+        materials: "home-tab-materials.png",
+        quests: "home-tab-quests.png",
+        bestiary: "home-tab-bestiary.png",
       },
     },
     styleTags: {

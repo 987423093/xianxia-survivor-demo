@@ -12,8 +12,14 @@ const python = "/Users/zhoutao/miniconda3/bin/python3";
 const maps = ["map-stone-array.png", "map-blood-wasteland.png", "map-thunder-gate.png"];
 const homeScenes = [
   "home-dongfu-bg.png",
+  "home-tab-home.png",
+  "home-tab-more.png",
   "home-tab-chapters.png",
   "home-tab-start.png",
+  "home-tab-journey.png",
+  "home-tab-materials.png",
+  "home-tab-quests.png",
+  "home-tab-bestiary.png",
   "home-tab-talents.png",
   "home-tab-artifacts.png",
   "home-tab-cultivation.png",

@@ -30,6 +30,7 @@ const requestedChapter = params.get("chapter") || "";
 const requestedDifficulty = params.get("difficulty") || "";
 const theme = themes[requestedTheme] || themes.xianxia;
 const MOBILE_MAX_WIDTH = 720;
+const MOBILE_HOME_MORE_CLASS = "mobile-home-more";
 const HOME_TAB_GLYPHS = {
   chapters: "章",
   start: "启",
@@ -59,7 +60,9 @@ const ui = {
   mobileGrowthBtn: document.querySelector("#mobileGrowthBtn"),
   mobileDashBtn: document.querySelector("#mobileDashBtn"),
   mobileHomeBtn: document.querySelector("#mobileHomeBtn"),
-  mobileGrowthPanel: document.querySelector("#mobileGrowthPanel"),
+  mobileBattleDrawer: document.querySelector("#mobileBattleDrawer"),
+  mobileDrawerCloseBtn: document.querySelector("#mobileDrawerCloseBtn"),
+  mobileDrawerGoals: document.querySelector("#mobileDrawerGoals"),
   mobileLevel: document.querySelector("#mobileLevel"),
   mobileKills: document.querySelector("#mobileKills"),
   mobileWeapon: document.querySelector("#mobileWeapon"),
@@ -111,7 +114,11 @@ const ui = {
   resultQuestBtn: document.querySelector("#resultQuestBtn"),
   restartBtn: document.querySelector("#restartBtn"),
   homePanel: document.querySelector("#homePanel"),
+  homeShell: document.querySelector(".home-shell"),
   metaCurrencies: document.querySelector("#metaCurrencies"),
+  mobileHomeNav: document.querySelector("#mobileHomeNav"),
+  mobileHomeMoreBtn: document.querySelector("#mobileHomeMoreBtn"),
+  mobileHomeLanding: document.querySelector("#mobileHomeLanding"),
   homeTabs: document.querySelector("#homeTabs"),
   homeContent: document.querySelector("#homeContent"),
   startRunBtn: document.querySelector("#startRunBtn"),
@@ -277,8 +284,24 @@ function currentUiMode() {
   return uiMode;
 }
 
-function syncGrowthPanel() {
-  ui.mobileGrowthPanel?.classList.toggle("hidden", !homeState.mobileGrowthOpen || currentUiMode() !== "mobile");
+function defaultHomeTab() {
+  return currentUiMode() === "mobile" ? "home" : "chapters";
+}
+
+function syncMobileHomeShellState() {
+  ui.homeShell?.classList.toggle(MOBILE_HOME_MORE_CLASS, homeState.mobileHomeSection === "more");
+}
+
+function syncMobileBattleDrawer() {
+  const open = homeState.mobileGrowthOpen && currentUiMode() === "mobile" && game.state !== "home";
+  ui.mobileBattleDrawer?.classList.toggle("hidden", !open);
+  ui.mobileBattleDrawer?.setAttribute("aria-hidden", String(!open));
+  if (ui.body) ui.body.dataset.mobileDrawer = open ? "open" : "closed";
+  const hasGoals = Boolean(ui.runGoals?.innerHTML?.trim()) && !ui.runGoals?.classList.contains("hidden");
+  if (ui.mobileDrawerGoals) {
+    ui.mobileDrawerGoals.classList.toggle("hidden", !hasGoals);
+    ui.mobileDrawerGoals.innerHTML = hasGoals ? ui.runGoals.innerHTML : "";
+  }
   ui.mobileGrowthBtn?.setAttribute("aria-expanded", String(homeState.mobileGrowthOpen));
 }
 
@@ -294,12 +317,13 @@ function updateUiMode() {
   } else if (!ui.homePanel || ui.homePanel.classList.contains("hidden")) {
     homeState.saveToolsOpen = false;
   }
-  syncGrowthPanel();
+  syncMobileHomeShellState();
+  syncMobileBattleDrawer();
 }
 
 function toggleGrowthPanel(force) {
   homeState.mobileGrowthOpen = typeof force === "boolean" ? force : !homeState.mobileGrowthOpen;
-  syncGrowthPanel();
+  syncMobileBattleDrawer();
 }
 
 function setBootPhase(text, progress = 0) {
@@ -434,6 +458,7 @@ const runtime = createRunRuntime({
   compactRealmLabel,
   realmLabel,
   getUiMode: currentUiMode,
+  syncMobileBattleDrawer,
   homeController: () => homeController,
   activeBuildSynergies: () => buildPlanner?.activeBuildSynergies?.() || [],
   openUpgradePanel: () => buildPlanner?.openUpgradePanel?.(),
@@ -822,6 +847,7 @@ homeController = createHomeController({
   game,
   metaConfig,
   homeState,
+  getUiMode: currentUiMode,
   getMetaState,
   setMetaState,
   sanitizeMetaState,
@@ -837,6 +863,7 @@ homeController = createHomeController({
 
 const handleHomeAction = createHomeActionHandler({
   homeState,
+  getUiMode: currentUiMode,
   getMetaState,
   getMetaConfig: () => metaConfig,
   setSelectedChapterForBuild,
@@ -858,6 +885,7 @@ const handleHomeAction = createHomeActionHandler({
   unique,
   saveMetaState,
   homeController,
+  startRunFromHome,
 });
 
 window.demoGame = {
@@ -1126,7 +1154,7 @@ async function initializeApp() {
     runtime.runDebugResolvedEventScenario();
   } else if (debugFinishOnStart && metaConfig) startRunFromHome();
   else if (metaConfig) {
-    homeController.open("chapters");
+    homeController.open(defaultHomeTab());
   } else {
     ui.homeBtn?.classList.add("hidden");
     ui.mobileHomeBtn?.classList.add("hidden");
@@ -1151,6 +1179,7 @@ function loop(now) {
 window.addEventListener("resize", () => {
   resize();
   updateUiMode();
+  syncMobileBattleDrawer();
   homeController?.syncSaveToolsState?.();
   if (!ui.homePanel?.classList.contains("hidden")) homeController?.renderHomePanel?.();
   if (game.player?.maxHp) runtime.updateUi();
@@ -1206,7 +1235,7 @@ canvas.addEventListener("pointercancel", () => {
 
 ui.restartBtn.addEventListener("click", () => {
   toggleGrowthPanel(false);
-  if (metaConfig) homeController.open("chapters");
+  if (metaConfig) homeController.open(defaultHomeTab());
   else runtime.resetGame();
 });
 ui.resultQuestBtn?.addEventListener("click", () => {
@@ -1243,11 +1272,11 @@ ui.resumeBtn.addEventListener("click", runtime.resumeGame);
 ui.quickRestartBtn.addEventListener("click", runtime.resetGame);
 ui.homeBtn?.addEventListener("click", () => {
   toggleGrowthPanel(false);
-  homeController.open("chapters");
+  homeController.open(defaultHomeTab());
 });
 ui.mobileHomeBtn?.addEventListener("click", () => {
   toggleGrowthPanel(false);
-  homeController.open("chapters");
+  homeController.open(defaultHomeTab());
 });
 ui.startRunBtn?.addEventListener("click", startRunFromHome);
 ui.closeHomeBtn?.addEventListener("click", () => {
@@ -1260,6 +1289,18 @@ ui.saveToolsToggleBtn?.addEventListener("click", () => {
   homeState.saveToolsOpen = !homeState.saveToolsOpen;
   homeController?.syncSaveToolsState?.();
 });
+ui.mobileHomeNav?.addEventListener("click", (event) => {
+  const button = event.target.closest("button[data-section]");
+  if (!button) return;
+  if (button.dataset.section === "more") {
+    homeState.mobileHomeSection = "more";
+    homeState.mobileHomeMoreTab = "more";
+  } else {
+    homeState.mobileHomeSection = button.dataset.section;
+  }
+  syncMobileHomeShellState();
+  homeController.renderHomePanel();
+});
 ui.homeTabs?.addEventListener("click", (event) => {
   const button = event.target.closest("button[data-tab]");
   if (!button) return;
@@ -1268,13 +1309,22 @@ ui.homeTabs?.addEventListener("click", (event) => {
   homeState.targetMaterialMode = "";
   homeState.targetMaterialDifficulty = "";
   homeState.activeTab = button.dataset.tab;
+  syncMobileHomeShellState();
   homeController.renderHomePanel();
 });
 ui.homeContent?.addEventListener("click", (event) => {
   const button = event.target.closest("button[data-action]");
   if (!button || button.disabled) return;
   handleHomeAction(button);
+  syncMobileHomeShellState();
 });
+ui.mobileHomeLanding?.addEventListener("click", (event) => {
+  const button = event.target.closest("button[data-action]");
+  if (!button || button.disabled) return;
+  handleHomeAction(button);
+  syncMobileHomeShellState();
+});
+ui.mobileDrawerCloseBtn?.addEventListener("click", () => toggleGrowthPanel(false));
 ui.eventChoiceOptions?.addEventListener("click", (event) => {
   const button = event.target.closest("button[data-choice-id]");
   if (!button || button.disabled) return;

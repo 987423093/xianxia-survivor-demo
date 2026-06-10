@@ -29,6 +29,7 @@ export function createRunRuntime({
   compactRealmLabel,
   realmLabel,
   getUiMode = () => "desktop",
+  syncMobileBattleDrawer = () => {},
   homeController,
   activeBuildSynergies = () => [],
   openUpgradePanel = () => {},
@@ -1442,6 +1443,7 @@ export function createRunRuntime({
     renderRunGoals();
     updateRunGoalNotices();
     renderGoalToast();
+    syncMobileBattleDrawer();
 
     const boss = game.enemies.find((enemy) => enemy.type === "boss");
     ui.bossHud.classList.toggle("hidden", !boss);

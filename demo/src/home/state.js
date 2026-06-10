@@ -13,6 +13,8 @@ export function createHomeState({
     activeTab: "chapters",
     previousGameState: "playing",
     mobileGrowthOpen: false,
+    mobileHomeSection: "home",
+    mobileHomeMoreTab: "more",
     saveToolsOpen: false,
     focusedMaterials: [],
     preloadedTabs: new Set(),

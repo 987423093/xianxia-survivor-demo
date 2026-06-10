@@ -9,6 +9,7 @@ export function createHomeController({
   game,
   metaConfig,
   homeState,
+  getUiMode = () => "desktop",
   getMetaState,
   setMetaState,
   sanitizeMetaState,
@@ -48,6 +49,57 @@ export function createHomeController({
     setQuestBadge(ui.mobileHomeBtn, count, "可领取悬赏");
     const questTab = ui.homeTabs?.querySelector('button[data-tab="quests"]');
     setQuestBadge(questTab, count, "可领取悬赏");
+    const mobileQuestButton = ui.mobileHomeNav?.querySelector('button[data-section="quests"]');
+    setQuestBadge(mobileQuestButton, count, "可领取悬赏");
+  }
+
+  function applySectionVisual(tabKey = "chapters") {
+    const background = metaConfig?.homeAssets?.tabs?.[tabKey] || metaConfig?.homeAssets?.background;
+    ui.homePanel.dataset.homeVisual = tabKey;
+    if (background) {
+      ui.homePanel.style.setProperty("--home-section-bg", `url("${optimizedAssetUrl(background)}")`);
+    } else {
+      ui.homePanel.style.removeProperty("--home-section-bg");
+    }
+  }
+
+  function syncMobileHomeNav() {
+    if (!ui.mobileHomeNav) return;
+    for (const button of ui.mobileHomeNav.querySelectorAll("button[data-section]")) {
+      button.classList.toggle("active", button.dataset.section === homeState.mobileHomeSection);
+    }
+  }
+
+  function renderMobileHomePanel() {
+    if (!ui.homePanel || !ui.homeContent || !ui.mobileHomeLanding) return;
+    const section = homeState.mobileHomeSection || "home";
+    ui.homePanel.dataset.mobileSection = section;
+    ui.homePanel.dataset.mobileMoreTab = homeState.mobileHomeMoreTab || "";
+    ui.mobileHomeLanding.classList.toggle("hidden", section !== "home");
+    ui.mobileHomeLanding.setAttribute("aria-hidden", String(section !== "home"));
+    ui.homeContent.classList.toggle("hidden", section === "home");
+    ui.homeContent.setAttribute("aria-hidden", String(section === "home"));
+    syncMobileHomeNav();
+    if (section === "home") {
+      applySectionVisual("home");
+      ui.mobileHomeLanding.innerHTML = renderers.mobileHomeLanding();
+      ui.homeContent.innerHTML = "";
+      return;
+    }
+
+    let targetTab = homeState.activeTab || "chapters";
+    if (section === "build") targetTab = "start";
+    if (section === "quests") targetTab = "quests";
+    if (section === "chapters") targetTab = "chapters";
+    if (section === "more") targetTab = homeState.mobileHomeMoreTab || "journey";
+    homeState.activeTab = targetTab;
+    if (!homeState.preloadedTabs.has(targetTab)) {
+      preloadHomeAssetsForTab(targetTab);
+      homeState.preloadedTabs.add(targetTab);
+    }
+    applySectionVisual(targetTab === "more" ? "more" : targetTab);
+    const renderer = targetTab === "more" ? renderers.mobileHomeMore : (renderers[targetTab] || renderers.chapters);
+    ui.homeContent.innerHTML = renderer();
   }
 
   function renderHomePanel() {
@@ -57,12 +109,24 @@ export function createHomeController({
     if (metaConfig.homeAssets?.background) {
       ui.homePanel.style.setProperty("--home-bg", `url("${optimizedAssetUrl(metaConfig.homeAssets.background)}")`);
     }
+    renderCurrencies();
+    syncSaveToolsState();
+    if (getUiMode() === "mobile") {
+      renderMobileHomePanel();
+      updateQuestBadges();
+      return;
+    }
+    ui.homePanel.dataset.mobileSection = "";
+    ui.homePanel.dataset.mobileMoreTab = "";
+    ui.mobileHomeLanding?.classList.add("hidden");
+    ui.mobileHomeLanding?.setAttribute("aria-hidden", "true");
+    ui.homeContent.classList.remove("hidden");
+    ui.homeContent.setAttribute("aria-hidden", "false");
     if (!homeState.preloadedTabs.has(homeState.activeTab)) {
       preloadHomeAssetsForTab(homeState.activeTab);
       homeState.preloadedTabs.add(homeState.activeTab);
     }
-    renderCurrencies();
-    syncSaveToolsState();
+    applySectionVisual(homeState.activeTab);
     for (const button of ui.homeTabs.querySelectorAll("button")) {
       button.classList.toggle("active", button.dataset.tab === homeState.activeTab);
     }
@@ -74,7 +138,26 @@ export function createHomeController({
   function open(defaultTab = homeState.activeTab) {
     if (!metaConfig || !ui.homePanel) return;
     homeState.previousGameState = game.state === "home" ? homeState.previousGameState : game.state;
-    homeState.activeTab = defaultTab;
+    if (getUiMode() === "mobile") {
+      if (defaultTab === "home" || defaultTab === "mobile-home") {
+        homeState.mobileHomeSection = "home";
+      } else if (defaultTab === "start") {
+        homeState.mobileHomeSection = "build";
+        homeState.activeTab = "start";
+      } else if (defaultTab === "quests") {
+        homeState.mobileHomeSection = "quests";
+        homeState.activeTab = "quests";
+      } else if (defaultTab === "chapters") {
+        homeState.mobileHomeSection = "chapters";
+        homeState.activeTab = "chapters";
+      } else {
+        homeState.mobileHomeSection = "more";
+        homeState.mobileHomeMoreTab = defaultTab;
+        homeState.activeTab = defaultTab;
+      }
+    } else {
+      homeState.activeTab = defaultTab;
+    }
     homeState.mobileGrowthOpen = false;
     game.state = "home";
     game.goalTrackingActive = false;

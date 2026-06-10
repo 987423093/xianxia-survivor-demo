@@ -23,25 +23,38 @@
           <span id="mobileTimer" class="mobile-pill">00:00</span>
           <button id="mobilePauseBtn" class="mobile-icon-btn" type="button" aria-label="暂停">暂停</button>
         </div>
+        <div id="mobileBossStrip" class="mobile-boss-strip hidden">
+          <strong id="mobileBossName">天劫雷主</strong>
+          <div class="bar boss-bar"><span id="mobileBossBar"></span></div>
+        </div>
         <div id="mobileActionRail" class="mobile-action-rail">
           <button id="mobileGrowthBtn" class="mobile-icon-btn" type="button" aria-label="成长信息" aria-expanded="false">成长</button>
           <button id="mobileDashBtn" class="mobile-icon-btn" type="button" aria-label="闪避">闪避</button>
           <button id="mobileHomeBtn" class="mobile-icon-btn" type="button" aria-label="洞府">洞府</button>
         </div>
-        <div id="mobileGrowthPanel" class="mobile-growth-panel hidden">
-          <span id="mobileLevel"></span>
-          <span id="mobileKills"></span>
-          <span id="mobileWeapon"></span>
-        </div>
-        <div id="mobileBossStrip" class="mobile-boss-strip hidden">
-          <strong id="mobileBossName">天劫雷主</strong>
-          <div class="bar boss-bar"><span id="mobileBossBar"></span></div>
-        </div>
         <div id="mobileStatusDock" class="mobile-status-dock">
           <label><span id="mobileHpLabel">气血</span><div class="bar hp"><span id="mobileHpBar"></span></div></label>
           <label><span id="mobileEnergyLabel">灵力</span><div class="bar energy"><span id="mobileEnergyBar"></span></div></label>
           <label><span id="mobileXpLabel">修为</span><div class="bar xp"><span id="mobileXpBar"></span></div></label>
-          <small id="mobileEquipmentSummary">未着法器</small>
+        </div>
+        <div id="mobileBattleDrawer" class="mobile-battle-drawer hidden" aria-hidden="true">
+          <div class="mobile-battle-drawer-sheet">
+            <div class="mobile-battle-drawer-handle" aria-hidden="true"></div>
+            <div class="mobile-battle-drawer-head">
+              <div>
+                <strong>局内成长</strong>
+                <span>战中只看重点，详情收进这里。</span>
+              </div>
+              <button id="mobileDrawerCloseBtn" class="mobile-drawer-close" type="button" aria-label="收起成长面板">收起</button>
+            </div>
+            <div class="mobile-battle-metrics">
+              <span id="mobileLevel"></span>
+              <span id="mobileKills"></span>
+              <span id="mobileWeapon"></span>
+            </div>
+            <small id="mobileEquipmentSummary">未着法器</small>
+            <div id="mobileDrawerGoals" class="mobile-drawer-goals hidden"></div>
+          </div>
         </div>
       </section>
       <section class="hud top">
@@ -114,6 +127,15 @@
             </div>
             <div id="metaCurrencies" class="meta-currencies"></div>
           </header>
+          <div id="mobileHomeNav" class="mobile-home-nav" aria-label="移动端洞府主入口">
+            <div class="mobile-home-nav-main">
+              <button data-section="home" type="button">首页</button>
+              <button data-section="build" type="button">构筑</button>
+              <button data-section="quests" type="button">悬赏</button>
+              <button data-section="chapters" type="button">章节</button>
+            </div>
+            <button id="mobileHomeMoreBtn" class="secondary mobile-home-more-btn" data-section="more" type="button">更多</button>
+          </div>
           <nav id="homeTabs" class="home-tabs" aria-label="洞府页签">
             <button data-tab="chapters" type="button">章节</button>
             <button data-tab="start" type="button">开局</button>
@@ -126,6 +148,7 @@
             <button data-tab="cultivation" type="button">功法</button>
             <button data-tab="facilities" type="button">洞府</button>
           </nav>
+          <section id="mobileHomeLanding" class="mobile-home-landing hidden" aria-hidden="true"></section>
           <section id="homeContent" class="home-content"></section>
           <footer class="home-actions">
             <div class="home-primary-actions">

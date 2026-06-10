@@ -6,6 +6,7 @@
  */
 export function createHomeActionHandler({
   homeState,
+  getUiMode = () => "desktop",
   getMetaState,
   getMetaConfig,
   setSelectedChapterForBuild,
@@ -27,7 +28,30 @@ export function createHomeActionHandler({
   unique,
   saveMetaState,
   homeController,
+  startRunFromHome = () => {},
 }) {
+  function syncMobileSectionForTab(tab) {
+    if (getUiMode() !== "mobile") return;
+    if (tab === "start") {
+      homeState.mobileHomeSection = "build";
+      return;
+    }
+    if (tab === "quests") {
+      homeState.mobileHomeSection = "quests";
+      return;
+    }
+    if (tab === "chapters") {
+      homeState.mobileHomeSection = "chapters";
+      return;
+    }
+    if (tab === "home" || tab === "mobile-home") {
+      homeState.mobileHomeSection = "home";
+      return;
+    }
+    homeState.mobileHomeSection = "more";
+    homeState.mobileHomeMoreTab = tab;
+  }
+
   function openTab(target) {
     homeState.focusedMaterials = target.dataset.focusMaterials
       ? target.dataset.focusMaterials.split(",").filter(Boolean)
@@ -36,6 +60,7 @@ export function createHomeActionHandler({
     homeState.targetMaterialMode = "";
     homeState.targetMaterialDifficulty = "";
     homeState.activeTab = target.dataset.tab;
+    syncMobileSectionForTab(target.dataset.tab);
   }
 
   function applyMaterialRoute(target, mode) {
@@ -51,6 +76,7 @@ export function createHomeActionHandler({
     homeState.targetMaterialMode = mode;
     homeState.targetMaterialDifficulty = target.dataset.difficulty || "";
     homeState.activeTab = "chapters";
+    syncMobileSectionForTab("chapters");
   }
 
   function applyPreset(id) {
@@ -126,6 +152,31 @@ export function createHomeActionHandler({
     const id = target.dataset.id;
     if (!action || !metaState) return;
 
+    if (action === "start-run") {
+      startRunFromHome();
+      return;
+    }
+
+    if (action === "open-mobile-home-section") {
+      const section = target.dataset.section || "home";
+      homeState.mobileHomeSection = section;
+      if (section === "home") homeState.activeTab = "chapters";
+      if (section === "build") homeState.activeTab = "start";
+      if (section === "quests") homeState.activeTab = "quests";
+      if (section === "chapters") homeState.activeTab = "chapters";
+      if (section === "more") homeState.mobileHomeMoreTab = "more";
+      homeController.renderHomePanel();
+      return;
+    }
+
+    if (action === "open-mobile-more-tab") {
+      homeState.mobileHomeSection = "more";
+      homeState.mobileHomeMoreTab = target.dataset.tab || "more";
+      homeState.activeTab = homeState.mobileHomeMoreTab;
+      homeController.renderHomePanel();
+      return;
+    }
+
     if (action === "open-tab" && target.dataset.tab) {
       openTab(target);
       saveMetaState();
@@ -146,11 +197,13 @@ export function createHomeActionHandler({
     if (action === "tune-chapter-build") {
       setSelectedChapterForBuild(id);
       homeState.activeTab = "start";
+      syncMobileSectionForTab("start");
     }
     if (action === "patch-bestiary-build") {
       setSelectedChapterForBuild(id);
       if (target.dataset.difficulty) metaState.selected.difficultyId = target.dataset.difficulty;
       applyWeaknessPatchPlan(getSelectedChapter(), getSelectedDifficulty());
+      syncMobileSectionForTab("chapters");
     }
     if (action === "select-artifact") metaState.selected.artifactId = id;
     if (action === "select-cultivation") metaState.selected.cultivationId = id;

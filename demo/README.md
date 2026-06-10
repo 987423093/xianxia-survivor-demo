@@ -64,6 +64,26 @@ http://127.0.0.1:6273/?debugBoss=1&chapter=thunder-gate&difficulty=heaven
 - 结算页会拆分材料来源，展示击杀、闭关、Boss、倍率、奇遇、战场拾取等贡献。
 - `demo/assets/xianxia/` 下已接入首批 image2 PNG。`assets/generated/xianxia/raw/` 保留了生成原图和备选图。
 
+## 当前源码架构
+
+当前源码已经按职责拆成入口壳和领域模块：
+
+- `demo/src/main.js`：入口装配，只负责参数、DOM、依赖注入、事件绑定、主循环启动。
+- `demo/src/run-runtime.js`：战斗运行时，包含玩家、敌人、Boss、拾取、结算和调试场景。
+- `demo/src/run-events.js`：奇遇、伏击、试炼、连锁奇遇。
+- `demo/src/build-planner.js`：局外构筑、章节推荐、材料路线、组合图鉴。
+- `demo/src/quests-goals.js`：悬赏、局内目标、结果页下一步建议。
+- `demo/src/rewards-summary.js`：局后奖励、来源拆解、暂停摘要。
+- `demo/src/meta-store.js`：局外存档、导入导出、解锁与调试 meta。
+- `demo/src/home/*`：洞府状态、渲染、动作分发。
+- `demo/src/renderer.js`：Canvas 绘制。
+- `demo/src/assets.js`：资源加载和图片 helper。
+
+详细约束见：
+
+- `docs/modules/00-当前架构与开发约束.md`
+- `docs/modules/15-移动端浏览器验收方案.md`
+
 ## image2 资源生成
 
 缺失的新章节地图和 Boss 专属图可以用脚本串行生成：
@@ -121,5 +141,6 @@ location.reload();
 当前本机没有检测到 Cocos Creator.app，所以先交付浏览器可玩 Demo。后续迁移到 Cocos Creator 时，优先迁移：
 
 - `demo/src/theme.js` 的修仙主题配置。
-- `demo/src/main.js` 中的实体循环：玩家、敌人、投射物、拾取物、升级、波次。
+- `demo/src/run-runtime.js` 中的实体循环：玩家、敌人、投射物、拾取物、升级、波次。
+- `demo/src/run-events.js`、`demo/src/build-planner.js`、`demo/src/meta-store.js` 中的局内外系统逻辑。
 - Canvas 绘制替换为 Cocos Sprite、Prefab、Particle、Tween 和 Camera。
