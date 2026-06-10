@@ -3,7 +3,22 @@ import { readFileSync } from "node:fs";
 
 const meta = xianxiaTheme.meta;
 const errors = [];
-const mainSource = readFileSync(new URL("../demo/src/main.js", import.meta.url), "utf8");
+const sourceFiles = [
+  "../demo/src/main.js",
+  "../demo/src/build-planner.js",
+  "../demo/src/home/actions.js",
+  "../demo/src/home/controller.js",
+  "../demo/src/home/renderers.js",
+  "../demo/src/home/state.js",
+  "../demo/src/meta-store.js",
+  "../demo/src/quests-goals.js",
+  "../demo/src/rewards-summary.js",
+  "../demo/src/run-events.js",
+  "../demo/src/run-runtime.js",
+];
+const combinedSource = sourceFiles
+  .map((file) => readFileSync(new URL(file, import.meta.url), "utf8"))
+  .join("\n");
 
 const allowedEffectTargets = new Set([
   "weapon.keyboard.burst",
@@ -188,255 +203,258 @@ for (const cultivation of meta.cultivations) {
   }
 }
 
-if (!mainSource.includes("next-milestone")) {
+if (!combinedSource.includes("next-milestone")) {
   errors.push("milestone UI is missing next milestone preview");
 }
 
-if (!mainSource.includes("nextMilestoneBenefit(")) {
+if (!combinedSource.includes("nextMilestoneBenefit(")) {
   errors.push("milestone UI is missing next milestone benefit summary");
 }
 
-if (!mainSource.includes("nextMilestoneCostPlan(")) {
+if (!combinedSource.includes("nextMilestoneCostPlan(")) {
   errors.push("milestone UI is missing next milestone cost plan");
 }
 
-if (!mainSource.includes("rushMilestone(")) {
+if (!combinedSource.includes("rushMilestone(")) {
   errors.push("milestone UI is missing rush-to-next milestone action");
 }
 
-if (!mainSource.includes("milestone-materials")) {
+if (!combinedSource.includes("milestone-materials")) {
   errors.push("milestone UI is missing material shortcut for blocked rushes");
 }
 
-if (!mainSource.includes("focusedMaterials")) {
+if (!combinedSource.includes("focusedMaterials")) {
   errors.push("materials UI is missing focused material highlights");
 }
 
-if (!mainSource.includes("focusedMaterials = []")) {
+if (!combinedSource.includes("focusedMaterials = []")) {
   errors.push("materials UI must clear focused material highlights on normal tab switches");
 }
 
-if (!mainSource.includes("material-card-icon")) {
+if (!combinedSource.includes("material-card-icon")) {
   errors.push("materials UI should render currency icon headers for faster scanning");
 }
 
-if (!mainSource.includes("material-card-balance")) {
+if (!combinedSource.includes("material-card-balance")) {
   errors.push("materials UI should separate material balance from descriptive copy");
 }
 
-if (!mainSource.includes("materialNeedAmount(")) {
+if (!combinedSource.includes("materialNeedAmount(")) {
   errors.push("materials UI should calculate near-term material demand amounts");
 }
 
-if (!mainSource.includes("material-need-amount")) {
+if (!combinedSource.includes("material-need-amount")) {
   errors.push("materials UI should render near-term material demand amounts");
 }
 
-if (!mainSource.includes("material-farm-route")) {
+if (!combinedSource.includes("material-farm-route")) {
   errors.push("materials UI is missing per-material farm route estimates");
 }
 
-if (!mainSource.includes("farm-material-route")) {
+if (!combinedSource.includes("farm-material-route")) {
   errors.push("materials UI is missing actionable farm route shortcuts");
 }
 
-if (!mainSource.includes("data-focus-materials=\"${(row.focusMaterials || [])")) {
+if (!combinedSource.includes("data-focus-materials=\"${(row.focusMaterials || [])")) {
   errors.push("recommendation material shortcuts must carry focused material keys");
 }
 
-if (!mainSource.includes('debugMetaMode === "shortage"')) {
+if (!combinedSource.includes('debugMetaMode === "shortage"')) {
   errors.push("debug meta state is missing shortage scenario for material recommendation checks");
 }
 
-if (!mainSource.includes('debugMetaMode === "cleared"')) {
+if (!combinedSource.includes('debugMetaMode === "cleared"')) {
   errors.push("debug meta state is missing cleared scenario for repeat material route checks");
 }
 
-if (mainSource.includes('debugMetaMode === "combos" && debugFinishOnStart')) {
+if (combinedSource.includes('debugMetaMode === "combos" && debugFinishOnStart')) {
   errors.push("debug finish should work for every debug meta scenario");
 }
 
-if (!mainSource.includes("if (debugFinishOnStart && metaConfig) startRunFromHome()")) {
+if (
+  !combinedSource.includes("if (debugFinishOnStart && metaConfig) startRunFromHome()")
+  && !combinedSource.includes("if (debugFinishOnStart && metaConfig) {\n  runtime.startRunFromHome();\n}")
+) {
   errors.push("debug finish should auto-start meta runs for result panel checks");
 }
 
-if (!mainSource.includes("chapter-material-target")) {
+if (!combinedSource.includes("chapter-material-target")) {
   errors.push("chapter UI is missing material route context after farm shortcuts");
 }
 
-if (!mainSource.includes("materialPreviewDifficultyId")) {
+if (!combinedSource.includes("materialPreviewDifficultyId")) {
   errors.push("materials UI is missing reward difficulty preview controls");
 }
 
-if (!mainSource.includes("materialRouteLockReason(")) {
+if (!combinedSource.includes("materialRouteLockReason(")) {
   errors.push("materials UI is missing explicit farm route lock reasons");
 }
 
-if (!mainSource.includes("materialRouteLockRank(")) {
+if (!combinedSource.includes("materialRouteLockRank(")) {
   errors.push("materials UI should rank farm route locks by actionability");
 }
 
-if (!mainSource.includes("materialRouteUnlockHint(")) {
+if (!combinedSource.includes("materialRouteUnlockHint(")) {
   errors.push("materials UI should explain how to unlock locked farm routes");
 }
 
-if (!mainSource.includes("unlock-material-route")) {
+if (!combinedSource.includes("unlock-material-route")) {
   errors.push("locked material routes should offer an unlock jump action");
 }
 
-if (!mainSource.includes("nearestUnlockedChapterFor(")) {
+if (!combinedSource.includes("nearestUnlockedChapterFor(")) {
   errors.push("locked material route unlock jumps should target an unlocked prerequisite chapter");
 }
 
-if (!mainSource.includes("renderRewardSourceBreakdown(")) {
+if (!combinedSource.includes("renderRewardSourceBreakdown(")) {
   errors.push("result UI should explain reward sources after a run");
 }
 
-if (!mainSource.includes("exportMetaSave(")) {
+if (!combinedSource.includes("exportMetaSave(")) {
   errors.push("home UI should support exporting local meta save data");
 }
 
-if (!mainSource.includes("importMetaSave(")) {
+if (!combinedSource.includes("importMetaSave(")) {
   errors.push("home UI should support importing sanitized meta save data");
 }
 
-if (!mainSource.includes("runMaterialGoal(")) {
+if (!combinedSource.includes("runMaterialGoal(")) {
   errors.push("run goals should preserve material route context after starting a run");
 }
 
-if (!mainSource.includes("materialResultRecommendation(")) {
+if (!combinedSource.includes("materialResultRecommendation(")) {
   errors.push("result next steps should return material-route runs back to materials");
 }
 
-if (!mainSource.includes("debugMaterialDifficulty")) {
+if (!combinedSource.includes("debugMaterialDifficulty")) {
   errors.push("debug material result checks should support preview difficulty restoration");
 }
 
-if (!mainSource.includes("targetMaterialDifficulty")) {
+if (!combinedSource.includes("targetMaterialDifficulty")) {
   errors.push("material route result shortcuts should remember the intended preview difficulty");
 }
 
-if (!mainSource.includes("data-preview-difficulty")) {
+if (!combinedSource.includes("data-preview-difficulty")) {
   errors.push("result material shortcuts should carry preview difficulty back to materials");
 }
 
-if (!mainSource.includes("materialRouteRewardNote(")) {
+if (!combinedSource.includes("materialRouteRewardNote(")) {
   errors.push("material farm routes should explain first-clear versus repeat-farm value");
 }
 
-if (!mainSource.includes("materialRouteRunsText(")) {
+if (!combinedSource.includes("materialRouteRunsText(")) {
   errors.push("materials UI should estimate runs needed to cover material shortages");
 }
 
-if (!mainSource.includes("material-route-runs")) {
+if (!combinedSource.includes("material-route-runs")) {
   errors.push("materials UI should render material shortage run estimates");
 }
 
-if (!mainSource.includes("复刷收益")) {
+if (!combinedSource.includes("复刷收益")) {
   errors.push("material farm routes should label repeat material yield explicitly");
 }
 
-if (mainSource.includes("（待扩展）")) {
+if (combinedSource.includes("（待扩展）")) {
   errors.push("milestone UI must not label configured milestones as pending expansion");
 }
 
-if (!mainSource.includes("milestoneSummary(facility")) {
+if (!combinedSource.includes("milestoneSummary(facility")) {
   errors.push("facility UI is missing shared milestone preview");
 }
 
-if (!mainSource.includes("calculateRewardSourceBreakdown(")) {
+if (!combinedSource.includes("calculateRewardSourceBreakdown(")) {
   errors.push("result UI should calculate per-currency reward source details");
 }
 
-if (!mainSource.includes("reward-source-cards")) {
+if (!combinedSource.includes("reward-source-cards")) {
   errors.push("result UI should render per-currency reward source cards");
 }
 
-if (!mainSource.includes("chapterRewardHighlights(")) {
+if (!combinedSource.includes("chapterRewardHighlights(")) {
   errors.push("chapter UI should highlight first-clear versus repeat value");
 }
 
-if (!mainSource.includes("chapter-reward-highlights")) {
+if (!combinedSource.includes("chapter-reward-highlights")) {
   errors.push("chapter UI should render difficulty reward and first-clear highlight pills");
 }
 
-if (!mainSource.includes("renderBestiaryRewardHighlights(")) {
+if (!combinedSource.includes("renderBestiaryRewardHighlights(")) {
   errors.push("bestiary UI should mirror chapter reward highlights");
 }
 
-if (!mainSource.includes("chapterRewardChipRows(")) {
+if (!combinedSource.includes("chapterRewardChipRows(")) {
   errors.push("chapter UI should render iconized reward chips for drops and first-clear unlocks");
 }
 
-if (!mainSource.includes("reward-chip")) {
+if (!combinedSource.includes("reward-chip")) {
   errors.push("reward chip styling should be present for chapter and bestiary rewards");
 }
 
-if (!mainSource.includes("primaryMissingMaterial(")) {
+if (!combinedSource.includes("primaryMissingMaterial(")) {
   errors.push("upgrade cost hints should choose a primary missing material route");
 }
 
-if (!mainSource.includes("cost-hint-actions")) {
+if (!combinedSource.includes("cost-hint-actions")) {
   errors.push("upgrade cost hints should render shortcut actions");
 }
 
-if (!mainSource.includes("renderFirstClearRewardSummary(")) {
+if (!combinedSource.includes("renderFirstClearRewardSummary(")) {
   errors.push("result UI should render a dedicated first-clear reward summary");
 }
 
-if (!mainSource.includes("first-clear-reward-summary")) {
+if (!combinedSource.includes("first-clear-reward-summary")) {
   errors.push("result UI should style the first-clear reward summary block");
 }
 
-if (!mainSource.includes("spawnMaterialPickup(")) {
+if (!combinedSource.includes("spawnMaterialPickup(")) {
   errors.push("battle rewards should render collectible material pickups");
 }
 
-if (!mainSource.includes("spawnRewardPickups(")) {
+if (!combinedSource.includes("spawnRewardPickups(")) {
   errors.push("battle rewards should group live drops into pickup spawns");
 }
 
-if (!mainSource.includes("rewardPickupsForEnemy(")) {
+if (!combinedSource.includes("rewardPickupsForEnemy(")) {
   errors.push("elite and boss defeats should route into live pickup rewards");
 }
 
-if (!mainSource.includes("debugSpawnMaterialDrops(")) {
+if (!combinedSource.includes("debugSpawnMaterialDrops(")) {
   errors.push("debug API should expose a material pickup spawn helper");
 }
 
-if (!mainSource.includes("currentRunEvents(") || !mainSource.includes("recordRunEvent(")) {
+if (!combinedSource.includes("currentRunEvents(") || !combinedSource.includes("recordRunEvent(")) {
   errors.push("chapter-themed run events should be driven by shared event helpers");
 }
 
-if (!mainSource.includes("renderRunEventPreview(") || !mainSource.includes("chapterBuildContextTags(")) {
+if (!combinedSource.includes("renderRunEventPreview(") || !combinedSource.includes("chapterBuildContextTags(")) {
   errors.push("chapter and bestiary flows should surface event previews and event-driven build context");
 }
 
-if (!mainSource.includes("spawnEventAmbush(") || !mainSource.includes("debugSpawnRunEvent(") || !mainSource.includes("ambushSummaryText(")) {
+if (!combinedSource.includes("spawnEventAmbush(") || !combinedSource.includes("debugSpawnRunEvent(") || !combinedSource.includes("ambushSummaryText(")) {
   errors.push("risk-reward run events should expose ambush helpers and debug hooks");
 }
 
-if (!mainSource.includes("startEventChallenge(") || !mainSource.includes("updateEventChallenge(") || !mainSource.includes("runEventChallengeGoal(")) {
+if (!combinedSource.includes("startEventChallenge(") || !combinedSource.includes("updateEventChallenge(") || !combinedSource.includes("runEventChallengeGoal(")) {
   errors.push("timed run event challenges should wire through battle runtime and goal tracking");
 }
 
-if (!mainSource.includes("eventChallengeId")) {
+if (!combinedSource.includes("eventChallengeId")) {
   errors.push("challenge ambush enemies should preserve eventChallengeId for kill tracking");
 }
 
-if (!mainSource.includes("openRunEventChoice(") || !mainSource.includes("selectRunEventChoice(") || !mainSource.includes("debugChooseEventChoice(")) {
+if (!combinedSource.includes("openRunEventChoice(") || !combinedSource.includes("selectRunEventChoice(") || !combinedSource.includes("debugChooseEventChoice(")) {
   errors.push("choice-based run events should expose selection helpers and debug hooks");
 }
 
-if (!mainSource.includes("renderRunBlessingsSummary(") || !mainSource.includes("activeEventChoice")) {
+if (!combinedSource.includes("renderRunBlessingsSummary(") || !combinedSource.includes("activeEventChoice")) {
   errors.push("choice-based blessings should render in battle summaries and track active event choice state");
 }
 
-if (!mainSource.includes("maybeTriggerRunEventFollowups(") || !mainSource.includes("followupEventId")) {
+if (!combinedSource.includes("maybeTriggerRunEventFollowups(") || !combinedSource.includes("followupEventId")) {
   errors.push("choice-based run events should support chained follow-up event routes");
 }
 
-if (!mainSource.includes("secretFollowup") || !mainSource.includes("隐秘机缘")) {
+if (!combinedSource.includes("secretFollowup") || !combinedSource.includes("隐秘机缘")) {
   errors.push("run events should support hidden rare follow-up routes without spoiling labels");
 }
 

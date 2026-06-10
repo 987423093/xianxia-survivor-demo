@@ -45,7 +45,37 @@ const checks = [
     name: "main module",
     path: "/src/main.js",
     expectType: "text/javascript",
-    includes: ["exportMetaSave(", "importMetaSave(", "debugMetaMode", "materialRouteRunsText(", "calculateRewardSourceBreakdown(", "chapterRewardHighlights(", "renderBestiaryRewardHighlights(", "chapterRewardChipRows(", "primaryMissingMaterial(", "renderFirstClearRewardSummary(", "spawnMaterialPickup(", "spawnRewardPickups(", "debugSpawnMaterialDrops(", "currentRunEvents(", "recordRunEvent(", "renderRunEventPreview(", "chapterBuildContextTags(", "spawnEventAmbush(", "debugSpawnRunEvent(", "ambushSummaryText(", "startEventChallenge(", "updateEventChallenge(", "runEventChallengeGoal(", "eventChallengeId", "openRunEventChoice(", "selectRunEventChoice(", "debugChooseEventChoice(", "renderRunBlessingsSummary(", "maybeTriggerRunEventFollowups(", "secretFollowup", "renderEventJourneyPanel("],
+    includes: ["createRunRuntime", "./run-runtime.js", "./build-planner.js", "./quests-goals.js", "./rewards-summary.js", "./run-events.js", "exportMetaSave", "importMetaSave", "window.demoGame", "runtime.startRunFromHome"],
+  },
+  {
+    name: "runtime module",
+    path: "/src/run-runtime.js",
+    expectType: "text/javascript",
+    includes: ["spawnEnemyAt(", "startRunFromHome(", "finishRun(", "updateEventChallenge()", "spawnRewardPickups(", "debugResolveEventId", "eventChallengeId", "unlockConditionText("],
+  },
+  {
+    name: "build planner module",
+    path: "/src/build-planner.js",
+    expectType: "text/javascript",
+    includes: ["materialRouteRunsText(", "chapterRewardHighlights(", "renderBestiaryRewardHighlights(", "primaryMissingMaterial(", "renderRunEventPreview(", "chapterBuildContextTags("],
+  },
+  {
+    name: "run events module",
+    path: "/src/run-events.js",
+    expectType: "text/javascript",
+    includes: ["currentRunEvents(", "recordRunEvent(", "spawnEventAmbush(", "ambushSummaryText(", "startEventChallenge(", "openRunEventChoice(", "maybeTriggerRunEventFollowups(", "secretFollowup"],
+  },
+  {
+    name: "quests module",
+    path: "/src/quests-goals.js",
+    expectType: "text/javascript",
+    includes: ["renderEventJourneyPanel(", "runEventChallengeGoal(", "renderResultNextSteps(", "renderGoalToast("],
+  },
+  {
+    name: "rewards module",
+    path: "/src/rewards-summary.js",
+    expectType: "text/javascript",
+    includes: ["chapterRewardChipRows(", "calculateRewardSourceBreakdown(", "renderFirstClearRewardSummary(", "renderRunBlessingsSummary(", "renderPauseBuildSummary("],
   },
   {
     name: "theme module",
