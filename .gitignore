@@ -1,5 +1,7 @@
 .DS_Store
 .superpowers/
 .worktrees/
+assets/generated/
+assets/image2-prompts/
 output/
 tmp/
