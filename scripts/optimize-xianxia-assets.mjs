@@ -5,7 +5,7 @@ import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
-const assetDir = join(root, "demo/assets/xianxia");
+const assetDir = join(root, "web-runtime/assets/xianxia");
 const thumbDir = join(assetDir, "thumbs");
 const cwebp = process.env.CWEBP || "cwebp";
 

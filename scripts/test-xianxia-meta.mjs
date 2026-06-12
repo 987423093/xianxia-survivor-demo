@@ -1,7 +1,7 @@
-import { xianxiaTheme } from "../demo/src/theme.js";
+import { xianxiaContent } from "../web-runtime/src/content-registry/index.js";
 
-const meta = xianxiaTheme.meta;
-const balance = xianxiaTheme.balance || {};
+const meta = xianxiaContent.metaProgression;
+const balance = xianxiaContent.debug.rawTheme.balance || {};
 const errors = [];
 
 function assert(condition, message) {

@@ -1,20 +1,22 @@
-import { xianxiaTheme } from "../demo/src/theme.js";
+import { xianxiaContent } from "../web-runtime/src/content-registry/index.js";
 import { readFileSync } from "node:fs";
 
-const meta = xianxiaTheme.meta;
+const meta = xianxiaContent.metaProgression;
 const errors = [];
 const sourceFiles = [
-  "../demo/src/main.js",
-  "../demo/src/build-planner.js",
-  "../demo/src/home/actions.js",
-  "../demo/src/home/controller.js",
-  "../demo/src/home/renderers.js",
-  "../demo/src/home/state.js",
-  "../demo/src/meta-store.js",
-  "../demo/src/quests-goals.js",
-  "../demo/src/rewards-summary.js",
-  "../demo/src/run-events.js",
-  "../demo/src/run-runtime.js",
+  "../web-runtime/src/bootstrap/runtime/query.js",
+  "../web-runtime/src/bootstrap/runtime/ui-shell.js",
+  "../web-runtime/src/main.js",
+  "../web-runtime/src/meta/progression/build-planner.js",
+  "../web-runtime/src/ui/home/actions.js",
+  "../web-runtime/src/ui/home/controller.js",
+  "../web-runtime/src/ui/home/renderers.js",
+  "../web-runtime/src/ui/home/state.js",
+  "../web-runtime/src/meta/progression/meta-store.js",
+  "../web-runtime/src/meta/progression/quests-goals.js",
+  "../web-runtime/src/meta/progression/rewards-summary.js",
+  "../web-runtime/src/gameplay/run-events.js",
+  "../web-runtime/src/gameplay/run-runtime.js",
 ];
 const combinedSource = sourceFiles
   .map((file) => readFileSync(new URL(file, import.meta.url), "utf8"))

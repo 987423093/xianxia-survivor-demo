@@ -6,7 +6,7 @@ const root = resolve(".");
 const defaultBranch = "main";
 const workflowFile = "deploy-pages.yml";
 const workflowPath = `.github/workflows/${workflowFile}`;
-const deployPaths = ["package.json", "scripts", "demo", workflowPath];
+const deployPaths = ["package.json", "scripts", "web-runtime", workflowPath];
 const pollIntervalMs = 5000;
 const maxPollCount = 60;
 
@@ -25,7 +25,7 @@ for (let index = 2; index < process.argv.length; index += 1) {
 }
 
 const branch = args.get("--branch") || defaultBranch;
-const commitMessage = args.get("--message") || "chore: deploy demo to github pages";
+const commitMessage = args.get("--message") || "chore: deploy web runtime to github pages";
 const skipCommit = flags.has("--skip-commit");
 const skipWait = flags.has("--skip-wait");
 const privateRepo = flags.has("--private");
@@ -117,7 +117,7 @@ function ensureRemote() {
 
   const view = tryRun("gh", ["repo", "view", fullName, "--json", "url", "-q", ".url"]);
   if (view.status !== 0) {
-    run("gh", ["repo", "create", fullName, visibility, "--description", "HTML5 canvas xianxia survivor demo"]);
+    run("gh", ["repo", "create", fullName, visibility, "--description", "HTML5 canvas xianxia survivor web runtime"]);
   } else if (!privateRepo) {
     run("gh", ["repo", "edit", fullName, "--visibility", "public", "--accept-visibility-change-consequences"]);
   }
@@ -228,7 +228,7 @@ function printSummary(fullName, pagesUrl, runInfo) {
   console.log(`Workflow: ${runInfo?.url || `https://github.com/${fullName}/actions/workflows/${workflowFile}`}`);
 }
 
-ensureFile("demo/index.html", "demo/index.html is required for GitHub Pages deployment.");
+ensureFile("web-runtime/index.html", "web-runtime/index.html is required for GitHub Pages deployment.");
 ensureFile(workflowPath, `${workflowPath} is required for GitHub Pages deployment.`);
 
 info("Checking tools and repository");

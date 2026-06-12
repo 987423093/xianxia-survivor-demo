@@ -34,7 +34,7 @@
 - [x] 4.1 Create a project-local directory for image2 generated candidates and reviewed import-ready assets.
 - [x] 4.2 Document prompt templates for characters, enemies, weapons, skill icons, pickups, cover art, and theme concepts.
 - [x] 4.3 Generate the first batch of image2 reference assets for the default theme after the core placeholder loop is playable.
-- [x] 4.4 Review generated assets, rename selected files, crop or clean them if needed, and place them in the Cocos theme asset folder. Same-name image2 PNG assets were selected from generated variants and placed under demo/assets/xianxia.
+- [x] 4.4 Review generated assets, rename selected files, crop or clean them if needed, and place them in the Cocos theme asset folder. Same-name image2 PNG assets were selected from generated variants and placed under web-runtime/assets/xianxia.
 - [x] 4.5 Connect selected image2 assets to the reference theme configuration and prefabs. The xianxia theme now references local image paths and falls back to geometry when images fail.
 - [x] 4.6 Confirm provider credentials remain outside the repository and generated files are committed only if explicitly selected.
 
@@ -44,4 +44,4 @@
 - [ ] 5.2 Verify each OpenSpec scenario manually against the playable prototype and record gaps.
 - [x] 5.3 Check that the game can run with placeholder assets when image2 assets are missing.
 - [x] 5.4 Check that the reference theme uses local imported assets and does not call image2 at runtime.
-- [x] 5.5 Capture short gameplay evidence or screenshots for the first playable prototype. Browser screenshots are stored under `tmp/`, including HUD, chapter, material, challenge, event route, and home redesign checks.
+- [x] 5.5 Capture short gameplay evidence or screenshots for the first playable prototype. Browser screenshots are stored under local `tmp/` scratch output, including HUD, chapter, material, challenge, event route, and home redesign checks.

@@ -6,7 +6,7 @@ import { flattenUiOutputs, loadUiAssetManifest } from "./lib/xianxia-ui-assets.m
 
 const root = fileURLToPath(new URL("../", import.meta.url));
 const rawDir = join(root, "assets/generated/xianxia/raw");
-const demoDir = join(root, "demo/assets/xianxia");
+const demoDir = join(root, "web-runtime/assets/xianxia");
 const python = "/Users/zhoutao/miniconda3/bin/python3";
 const uiManifest = loadUiAssetManifest(root);
 

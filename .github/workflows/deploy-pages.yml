@@ -1,4 +1,4 @@
-name: Deploy demo to GitHub Pages
+name: Deploy web runtime to GitHub Pages
 
 on:
   workflow_dispatch:
@@ -27,10 +27,10 @@ jobs:
         with:
           enablement: true
 
-      - name: Upload demo
+      - name: Upload web runtime
         uses: actions/upload-pages-artifact@v3
         with:
-          path: demo
+          path: web-runtime
 
       - name: Deploy
         id: deployment
