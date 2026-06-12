@@ -44,6 +44,7 @@ export function createBuildPlanner({
   activeRunBlessingRows,
   getQuestState,
   addText,
+  uiButtonAttrs = () => "",
 }) {
   const metaState = new Proxy({}, {
     get(_target, key) {
@@ -1255,7 +1256,7 @@ export function createBuildPlanner({
                 <b>${combo.name}</b>
                 <small>${combo.ready ? combo.desc : `还缺：${combo.missing.join(" / ")}`}</small>
                 <em>${combo.record.bestCount ? `最佳 ${combo.record.bestCount} 次` : combo.recipe.join(" + ")}</em>
-                <button data-action="apply-combo" data-id="${combo.id}" ${combo.plan.usable ? "" : "disabled"}>${combo.ready ? "重套组合" : combo.plan.missing.length ? "套用已解锁" : "套用组合"}</button>
+                <button class="mobile-shell-cta-btn mobile-shell-cta-btn-primary" data-action="apply-combo" data-id="${combo.id}" type="button"${uiButtonAttrs("applyRecommendation", combo.ready ? "active" : combo.plan.missing.length ? "idle" : "emphasis", "primary")} ${combo.plan.usable ? "" : "disabled"}>${combo.ready ? "重套组合" : combo.plan.missing.length ? "套用已解锁" : "套用组合"}</button>
               </article>
             `)
             .join("")}

@@ -1,0 +1,368 @@
+# 洞府 UI 图片化重构与 `image2` 批量资产计划 Implementation Plan
+
+> **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
+
+**Goal:** 把洞府体系从“CSS 渐变主导”重构为“功能块和按钮语义驱动的图片资产体系”，首批覆盖 12 个页签横幅、首页/更多页/章节页关键功能块、以及核心动作按钮，并保留安全回退。
+
+**Architecture:** 先把 UI 资产从散落在 `styles.css` 的按钮变量和 `theme.meta.homeAssets` 升级为显式 `uiAssets` 配置层，再让 `renderers` 输出语义化 `panel` / `button` key，最后由 resolver 统一映射到本地图片与回退图。`image2` 生成不直接耦合运行时，而是先经过 manifest、prepare、check、optimize 四步进入 `demo/assets/xianxia/`。
+
+**Tech Stack:** 原生 ES Modules、HTML 模板字符串、CSS、自定义 Node 脚本、`image2` 本地生成脚本、Pillow 处理、WebP 优化、现有 `test:mobile` / `smoke` 校验。
+
+---
+
+## 0. 现状结论
+
+- 当前洞府图片入口主要在 `demo/src/theme.js` 的 `meta.homeAssets`，只覆盖背景和 12 个页签横幅。
+- 当前按钮皮肤主要由 `demo/styles.css` 顶部的 `--ui-button-primary` / `--ui-button-secondary` / `--ui-button-nav-*` 变量控制，仍是“样式语义”，不是“动作语义”。
+- 当前资产脚本 `scripts/generate-xianxia-missing-assets.mjs`、`scripts/prepare-xianxia-assets.mjs`、`scripts/check-xianxia-assets.mjs` 都是硬编码资源清单，还不能承接“批量新增 panel/button 资产”。
+- 当前 `demo/src/home/renderers.js` 已经有比较清晰的动作边界，适合补 `data-ui-panel`、`data-ui-action` 这类语义 key，不必先大改页面结构。
+
+这意味着第一步必须先改“资产协议”和“脚本清单来源”，不能直接一口气生图再手抄接入。
+
+## Task 1: 建立 UI 资产清单与命名规则
+
+**Files:**
+- Create: `assets/image2-prompts/xianxia/ui-assets.manifest.json`
+- Create: `assets/image2-prompts/xianxia/ui-shared-style.txt`
+- Create: `assets/image2-prompts/xianxia/panel-home-daily-decree.txt`
+- Create: `assets/image2-prompts/xianxia/panel-home-continue-run.txt`
+- Create: `assets/image2-prompts/xianxia/panel-home-current-build.txt`
+- Create: `assets/image2-prompts/xianxia/panel-home-claimable-rewards.txt`
+- Create: `assets/image2-prompts/xianxia/panel-home-chapter-recommendation.txt`
+- Create: `assets/image2-prompts/xianxia/panel-more-header.png.txt` only if you keep prompt-per-output naming; otherwise keep `.txt` names aligned with final asset stems
+- Create: `assets/image2-prompts/xianxia/panel-more-header.txt`
+- Create: `assets/image2-prompts/xianxia/panel-more-entry-journey.txt`
+- Create: `assets/image2-prompts/xianxia/panel-more-entry-materials.txt`
+- Create: `assets/image2-prompts/xianxia/panel-more-entry-quests.txt`
+- Create: `assets/image2-prompts/xianxia/panel-more-entry-bestiary.txt`
+- Create: `assets/image2-prompts/xianxia/panel-more-entry-talents.txt`
+- Create: `assets/image2-prompts/xianxia/panel-more-entry-artifacts.txt`
+- Create: `assets/image2-prompts/xianxia/panel-more-entry-cultivation.txt`
+- Create: `assets/image2-prompts/xianxia/panel-more-entry-facilities.txt`
+- Create: `assets/image2-prompts/xianxia/panel-chapters-overview.txt`
+- Create: `assets/image2-prompts/xianxia/panel-chapters-card.txt`
+- Create: `assets/image2-prompts/xianxia/panel-chapters-drops.txt`
+- Create: `assets/image2-prompts/xianxia/panel-chapters-encounter.txt`
+- Create: `assets/image2-prompts/xianxia/panel-chapters-boss.txt`
+- Create: `assets/image2-prompts/xianxia/btn-start-run.txt`
+- Create: `assets/image2-prompts/xianxia/btn-open-more.txt`
+- Create: `assets/image2-prompts/xianxia/btn-back-home.txt`
+- Create: `assets/image2-prompts/xianxia/btn-open-chapters.txt`
+- Create: `assets/image2-prompts/xianxia/btn-open-build.txt`
+- Create: `assets/image2-prompts/xianxia/btn-open-quests.txt`
+- Create: `assets/image2-prompts/xianxia/btn-apply-recommendation.txt`
+- Create: `assets/image2-prompts/xianxia/btn-enter-detail.txt`
+- Create: `assets/image2-prompts/xianxia/btn-return-battle.txt`
+- Create: `assets/image2-prompts/xianxia/btn-save-tools.txt`
+- Modify later: `docs/modules/11-image2资产管线.md`
+
+**Implementation notes:**
+- `ui-assets.manifest.json` 作为单一清单来源，至少分三组：`tabs`、`panels`、`buttons`。
+- 每一项都要显式记录：`key`、`output`、`promptFile`、`size`、`background`、`states`、`tabScope`、`fallbackKey`。
+- 按钮必须按动作语义建 key，不再出现 `primary` / `secondary` 这种运行时主键；允许在 `theme` 里把多个文案映射到同一个动作 key。
+- 推荐的 manifest 结构示例：
+
+```json
+{
+  "tabs": [
+    { "key": "home", "output": "home-tab-home.png", "promptFile": "home-tab-home.txt", "size": "1536x640", "background": "opaque" }
+  ],
+  "panels": [
+    { "key": "home.dailyDecree", "output": "panel-home-daily-decree.png", "promptFile": "panel-home-daily-decree.txt", "size": "1536x960", "background": "opaque", "fallbackKey": "shared.panel.primary" }
+  ],
+  "buttons": [
+    { "key": "startRun", "promptFile": "btn-start-run.txt", "size": "1536x640", "background": "opaque", "states": ["idle", "active", "emphasis"], "outputs": { "idle": "btn-start-run-idle.png", "active": "btn-start-run-active.png", "emphasis": "btn-start-run-emphasis.png" }, "fallbackKey": "shared.button.primary" }
+  ]
+}
+```
+
+- `ui-shared-style.txt` 只放共享风格约束，所有具体 prompt 引用同一套规则：无文字、无水印、中心留信息区、边缘保装饰、青墨玉石、暗金鎏边、统一光源、统一相机角度。
+- 第一批 prompt 不要为每个文案单独做图，按任务描述保持“中等复用”：按钮按动作语义拆，功能块按信息角色拆。
+
+**Exit criteria:**
+- 清单里完整列出 12 个页签横幅。
+- 清单里完整列出首页 5 个关键功能块、更多页 1 个头部 + 7 个入口卡、章节页 5 个重点功能块。
+- 清单里完整列出 10 个动作按钮，每个动作都有 `idle` / `active` / `emphasis` 三档。
+
+## Task 2: 让生成/处理/校验脚本改为读取 manifest，而不是硬编码数组
+
+**Files:**
+- Modify: `scripts/generate-xianxia-missing-assets.mjs`
+- Modify: `scripts/prepare-xianxia-assets.mjs`
+- Modify: `scripts/check-xianxia-assets.mjs`
+- Modify: `package.json`
+- Optional Create: `scripts/lib/xianxia-ui-assets.mjs`
+
+**Implementation notes:**
+- 把现在脚本里硬编码的 `assets`、`maps`、`homeScenes`、`homeIcons`、`hudIcons` 迁到 manifest 读取。
+- 抽出公共读取函数，例如：
+
+```js
+export function loadUiAssetManifest(root) {
+  return JSON.parse(readFileSync(join(root, "assets/image2-prompts/xianxia/ui-assets.manifest.json"), "utf8"));
+}
+```
+
+- `generate-xianxia-missing-assets.mjs` 要支持：
+  - `--group tabs|panels|buttons`
+  - `--only <key>`
+  - `--state idle|active|emphasis`
+  - `--n 2 --concurrency 2` 透传到 `image2`，便于同主题并发出 2-3 个变体
+- 不要继续维护一个“缺图脚本只认固定旧图名”的分支逻辑；后续新增按钮/面板应该只改 manifest 和 prompt 文件。
+- `prepare-xianxia-assets.mjs` 要按 manifest 的 `background` 决定处理方式：
+  - `opaque`：直接拷贝
+  - `transparent`：抠白底
+  - `sheet`：切图后再抠白底
+- `check-xianxia-assets.mjs` 要检查 manifest 中定义的所有输出文件，而不是一组手写数组；校验项保留：文件存在、尺寸正确、alpha 规则正确。
+- 推荐新增命令：
+  - `npm run assets:generate:ui -- --group panels --n 2 --concurrency 2`
+  - `npm run assets:generate:buttons -- --group buttons --n 2 --concurrency 2`
+
+**Exit criteria:**
+- 新增一个 `panel-*` 或 `btn-*` prompt 后，不需要再改三份脚本数组。
+- `assets:generate`、`assets:prepare`、`assets:check` 对 UI 资产与旧战斗资产都能继续工作。
+
+## Task 3: 在主题配置里新增统一 `uiAssets` 映射层
+
+**Files:**
+- Modify: `demo/src/theme.js`
+
+**Implementation notes:**
+- 在 `xianxiaTheme.meta` 下新增 `uiAssets`，不要把新协议塞回 `homeAssets`。
+- 推荐结构：
+
+```js
+uiAssets: {
+  tabs: {
+    home: "home-tab-home.png",
+    more: "home-tab-more.png"
+  },
+  panels: {
+    home: {
+      dailyDecree: "panel-home-daily-decree.png",
+      continueRun: "panel-home-continue-run.png"
+    },
+    more: {
+      header: "panel-more-header.png",
+      journey: "panel-more-entry-journey.png"
+    },
+    chapters: {
+      overview: "panel-chapters-overview.png",
+      chapterCard: "panel-chapters-card.png"
+    },
+    shared: {
+      primary: "panel-shared-primary.png"
+    }
+  },
+  buttons: {
+    startRun: { idle: "btn-start-run-idle.png", active: "btn-start-run-active.png", emphasis: "btn-start-run-emphasis.png" },
+    openMore: { idle: "btn-open-more-idle.png", active: "btn-open-more-active.png", emphasis: "btn-open-more-emphasis.png" },
+    shared: {
+      primary: { idle: "btn-shared-primary-idle.png", active: "btn-shared-primary-active.png", emphasis: "btn-shared-primary-emphasis.png" },
+      secondary: { idle: "btn-shared-secondary-idle.png", active: "btn-shared-secondary-active.png", emphasis: "btn-shared-secondary-emphasis.png" }
+    }
+  }
+}
+```
+
+- `meta.homeAssets.tabs` 先保留一版兼容期，只把读取迁到 `uiAssets.tabs`；等全部页面迁完再考虑删旧字段。
+- 明确写出按钮 fallback：`startRun` 缺图时退 `shared.primary`，`enterDetail` 缺图时退 `shared.secondary`，不要退回 CSS 渐变。
+
+**Exit criteria:**
+- `theme.js` 成为唯一视觉资源映射中心。
+- 新按钮/新面板是否有图，只需要看 `uiAssets`，不需要去 `styles.css` 猜变量。
+
+## Task 4: 新增 UI 资产 resolver，并接入预加载
+
+**Files:**
+- Create: `demo/src/home/ui-assets.js`
+- Modify: `demo/src/assets.js`
+- Modify: `demo/src/home/controller.js`
+- Modify: `demo/src/main.js`
+
+**Implementation notes:**
+- 新增 resolver，不要把字符串拼接逻辑散在 `renderers.js`。
+- 建议导出接口：
+
+```js
+export function createHomeUiAssets({ metaConfig, optimizedAssetUrl }) {
+  return {
+    tabBanner(tab) {},
+    panel(tab, role) {},
+    button(action, state = "idle") {},
+    panelStyle(tab, role) {},
+    buttonVars(action, state = "idle") {}
+  };
+}
+```
+
+- `panelStyle()` 返回可直接塞进 HTML 的 style 字符串，例如：`--panel-bg:url(...)`。
+- `buttonVars()` 返回按钮壳图片和回退图，例如：`--button-bg:url(...);--button-bg-fallback:url(...);`。
+- `assets.js` 需要增加 UI 预加载：
+  - `preloadHomeAssetsForTab(tab)` 继续负责 tab 相关资产
+  - 新增 `preloadHomeUiAssetsForTab(tab)`，把该 tab 的 banner、主 panel、主 CTA 提前入队
+- `home/controller.js` 在切 tab 和打开移动端首页时预热 `tabs + panels + buttons`，不要等滚动到区域再首帧加载。
+
+**Exit criteria:**
+- `renderers.js` 不再自己拼文件路径。
+- 洞府切页时能够预热该页签对应的 banner、主 panel、主 CTA。
+
+## Task 5: 把洞府 HTML 渲染从“样式类”改成“语义 key”
+
+**Files:**
+- Modify: `demo/src/home/renderers.js`
+- Optional Modify: `demo/index.html`
+
+**Implementation notes:**
+- 先从首批高价值区块下手：
+  - 首页 landing
+  - 更多页 head + 7 个入口卡
+  - 章节页 overview / chapter card / drops / encounter / boss
+- 每个功能块都加显式语义：
+  - `data-ui-panel="daily-decree"`
+  - `data-ui-panel="chapter-card"`
+  - `data-ui-action="start-run"`
+  - `data-ui-action="open-chapters"`
+- 推荐统一封装 helper，避免模板里重复写长字符串：
+
+```js
+const dailyDecreeAttrs = ctx.uiPanelAttrs("home", "dailyDecree");
+const startRunAttrs = ctx.uiButtonAttrs("startRun", recommendationApplied ? "active" : "emphasis");
+```
+
+- 文案和皮肤映射必须解耦：
+  - `入世斩妖` -> `startRun`
+  - `查看更多` -> `openMore`
+  - `回首页` -> `backHome`
+  - `调整章节` / `看章节详情` -> 同一个 `openChapters`
+  - `调整构筑` -> `openBuild`
+  - `查看悬赏` -> `openQuests`
+  - `套用推荐` -> `applyRecommendation`
+  - `进入详情` -> `enterDetail`
+  - `返回战斗` -> `returnBattle`
+  - `存档工具` -> `saveTools`
+
+- 第二批再把其他 9 个页签的“页头主模块 + 主 CTA”补齐到同一语义协议，不需要第一轮就把每个小列表项都重写。
+
+**Exit criteria:**
+- 首页、更多页、章节页不再依赖 `mobile-shell-cta-btn-primary` / `secondary` 决定皮肤。
+- 按钮皮肤主键统一由动作语义决定。
+
+## Task 6: 收 CSS 到布局层，只保留兜底视觉
+
+**Files:**
+- Modify: `demo/styles.css`
+
+**Implementation notes:**
+- 保留布局、尺寸、裁切、滤镜、状态变化。
+- 删除“按钮长什么样完全靠 `--ui-button-primary` / `--ui-button-secondary`”的核心职责；这些变量可以仅作为兜底。
+- 建议补一组新的运行时变量：
+
+```css
+.home-card[data-ui-panel] {
+  background-image: var(--panel-bg), var(--panel-bg-fallback, none);
+}
+
+button[data-ui-action]::before {
+  background-image: var(--button-bg), var(--button-bg-fallback, none);
+}
+```
+
+- hover / active 只允许轻微滤镜或 transform，不生成 hover 专属新图。
+- 保留安全兜底：
+  - 无图时依然有低对比度青墨玉石背景
+  - 宽度、圆角、padding 由 CSS 控制，避免缺图时出现白边、超长条、透明裁切错位
+
+**Exit criteria:**
+- `styles.css` 仍然决定布局，但不再决定“这是不是一张首页继续开局按钮”。
+- 去掉主要视觉后，缺图状态仍然可读可点。
+
+## Task 7: 首批 `image2` 生成与接入顺序
+
+**Files:**
+- Create/Modify: `assets/image2-prompts/xianxia/*.txt`
+- Output local only: `assets/generated/xianxia/raw/*.png`
+- Output selected: `demo/assets/xianxia/*.png`
+
+**Implementation notes:**
+- 第一批并发生成：
+  - `tabs`
+  - `panels` 中首页/更多页/章节页关键块
+- 第二批并发生成：
+  - `buttons`
+- 先统一风格，再定稿接入；不要一边生图一边手工替换正式图名。
+- 推荐命令形态：
+
+```bash
+npm run assets:generate -- --group panels --n 2 --concurrency 2 --quality high --timeout 600
+npm run assets:generate -- --group buttons --n 2 --concurrency 2 --quality high --timeout 600
+npm run assets:prepare
+npm run assets:check
+npm run assets:optimize
+```
+
+- 若某组图风格不稳，优先重跑该组 prompt，不要急着在 CSS 上补伪装效果。
+- 当前任务约束是不默认提交生成图片，所以首轮接入先在项目本地落盘、筛选、接线；确认风格后再决定提交范围。
+
+**Exit criteria:**
+- 首页、更多页、章节页关键块和核心按钮都能从本地正式资产读取。
+- 生成原图与正式接入图分离，仍符合现有 `image2` 资产管线。
+
+## Task 8: 验证、回退和文档补齐
+
+**Files:**
+- Modify: `docs/modules/11-image2资产管线.md`
+- Optional Modify: `demo/README.md`
+- Optional Create: `docs/modules/16-洞府UI资产协议.md`
+
+**Verification steps:**
+- 运行配置检查：
+
+```bash
+npm run config:check
+```
+
+- 运行移动端和整体 smoke：
+
+```bash
+npm run test:mobile
+npm run smoke
+```
+
+- 手动视觉检查至少覆盖：
+  - 首页移动端与桌面端
+  - 更多页移动端与桌面端
+  - 章节页移动端与桌面端
+  - 其余 9 个页签至少看页头主模块 + 主 CTA
+- 回退测试：
+  - 临时改掉一个 `panel` 映射，确认退到共享 panel 图
+  - 临时改掉一个 `button` 映射，确认退到共享 button 图
+  - 确认页面不出现白边、超长条、透明裁切错位
+
+**Exit criteria:**
+- `config:check`、`test:mobile`、`smoke` 继续通过。
+- 缺图时仍能展示可读界面，不回退到破图或纯白壳。
+
+## 推荐执行顺序
+
+1. 先做 Task 1-3，把 manifest、脚本入口、`theme.meta.uiAssets` 定下来。
+2. 再做 Task 4-6，把 resolver、renderers 语义 key、CSS 运行时变量打通。
+3. 最后做 Task 7-8，批量生图、筛选、接入、验收。
+
+## 不建议的做法
+
+- 不建议先直接生成几十张图，再回头想 key 怎么命名。
+- 不建议继续新增 `primary/secondary/nav` 一类样式变量充当业务主键。
+- 不建议第一轮就为每个具体文案独立生一张按钮图，这会让资产数量爆炸且难维护。
+- 不建议把缺图回退重新做成 CSS 渐变主视觉；兜底应该是共享图片壳 + 简单底色，而不是退回旧方案。
+
+## 第一轮交付边界
+
+- 必做：12 个页签横幅、首页 5 个功能块、更多页头部 + 7 个入口卡、章节页 5 个功能块、10 个按钮动作族。
+- 次必做：其余 9 个页签的页头主模块 + 主 CTA，允许暂时共用 `shared.panel.*` 与 `shared.button.*`。
+- 暂不做：细碎列表项逐条独立生图、hover 专属新图、运行时动态裁切图层特效。
+
+## 执行前检查
+
+- 当前工作区已有未提交改动：`demo/index.html`、`demo/src/home/renderers.js`、`demo/styles.css`，以及未跟踪的 `assets/generated/` 和一个中文模块文档。
+- 执行本计划时，要么先在这些文件上续做并仔细吸收现有改动，要么先把协议层改动限制在新文件和脚本中，避免与现有视觉调整互相覆盖。

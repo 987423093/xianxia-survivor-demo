@@ -1,8 +1,9 @@
-import { mkdir } from "node:fs/promises";
+import { mkdir, readFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import { flattenUiAssetManifest, loadUiAssetManifest } from "./lib/xianxia-ui-assets.mjs";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
 const python = "/Users/zhoutao/miniconda3/bin/python3";
@@ -10,7 +11,7 @@ const generator = "/Users/zhoutao/.codex/skills/image2/scripts/generate_image2.p
 const promptDir = join(root, "assets/image2-prompts/xianxia");
 const outDir = join(root, "assets/generated/xianxia/raw");
 
-const assets = [
+const legacyAssets = [
   { name: "map-stone-array", size: "2048x1152", background: "opaque" },
   { name: "map-blood-wasteland", size: "2048x1152", background: "opaque" },
   { name: "map-thunder-gate", size: "2048x1152", background: "opaque" },
@@ -63,11 +64,16 @@ const assets = [
 
 const options = {
   force: process.argv.includes("--force"),
+  dryRun: process.argv.includes("--dry-run"),
   transport: valueArg("--transport") || (process.argv.includes("--urllib") ? "urllib" : ""),
   only: valueArg("--only"),
+  group: valueArg("--group") || "all",
+  state: valueArg("--state"),
   model: valueArg("--model"),
   quality: valueArg("--quality") || "high",
   timeout: valueArg("--timeout") || "600",
+  count: valueArg("--n") || "1",
+  concurrency: valueArg("--concurrency") || "2",
   mapSize: valueArg("--map-size"),
   bossSize: valueArg("--boss-size"),
   bannerSize: valueArg("--banner-size"),
@@ -81,9 +87,12 @@ function valueArg(name) {
 }
 
 function sizeForAsset(asset) {
-  if (asset.name.startsWith("map-") || asset.name === "home-dongfu-bg") return options.mapSize || asset.size;
-  if (asset.name.startsWith("home-tab-")) return options.bannerSize || asset.size;
-  if (asset.name.startsWith("artifact-") || asset.name.startsWith("facility-") || asset.name.startsWith("path-") || asset.name.startsWith("hud-")) {
+  if (asset.type === "panel") return asset.size;
+  if (asset.type === "button") return asset.size;
+  const name = asset.name || asset.key;
+  if (name.startsWith("map-") || name === "home-dongfu-bg") return options.mapSize || asset.size;
+  if (name.startsWith("home-tab-")) return options.bannerSize || asset.size;
+  if (name.startsWith("artifact-") || name.startsWith("facility-") || name.startsWith("path-") || name.startsWith("hud-")) {
     return options.iconSize || asset.size;
   }
   return options.bossSize || asset.size;
@@ -96,27 +105,33 @@ function existingRawPath(name) {
   return existsSync(candidate) ? candidate : "";
 }
 
-await mkdir(outDir, { recursive: true });
+function wantsLegacyAssets() {
+  return options.group === "all" || options.group === "legacy" || (!options.group && !options.state);
+}
 
-const failures = [];
-for (const asset of assets) {
-  if (options.only && asset.name !== options.only) continue;
-  const size = sizeForAsset(asset);
-  const out = join(outDir, `${asset.name}.png`);
-  const existing = existingRawPath(asset.name);
-  if (existing && !options.force) {
-    console.log(`skip existing ${existing}`);
-    continue;
-  }
-  const args = [
-    generator,
-    ...(options.model ? ["--model", options.model] : []),
-    "--prompt-file",
-    join(promptDir, `${asset.name}.txt`),
+function wantsUiAssets() {
+  return options.group === "all" || ["navs", "tabs", "panels", "buttons"].some((value) => options.group.split(",").includes(value));
+}
+
+async function promptTextFor(asset) {
+  const prompt = (await readFile(join(promptDir, asset.promptFile), "utf8")).trim();
+  return asset.promptSuffix ? `${prompt}\n\n${asset.promptSuffix}` : prompt;
+}
+
+async function generatorArgsFor(asset, size, out) {
+  const args = [generator];
+  if (options.model) args.push("--model", options.model);
+  if (asset.promptSuffix) args.push("--prompt", await promptTextFor(asset));
+  else args.push("--prompt-file", join(promptDir, asset.promptFile));
+  args.push(
     "--size",
     size,
     "--quality",
     options.quality,
+    "--n",
+    options.count,
+    "--concurrency",
+    options.concurrency,
     "--output-format",
     "png",
     "--background",
@@ -124,13 +139,46 @@ for (const asset of assets) {
     "--timeout",
     options.timeout,
     "--force",
-    "--out",
-    out,
-  ];
-  if (options.transport) args.splice(args.length - 2, 0, "--transport", options.transport);
-  console.log(`generate ${asset.name} (${size}, ${options.quality}) -> ${out}`);
+  );
+  if (options.transport) args.push("--transport", options.transport);
+  if (options.dryRun) args.push("--dry-run");
+  args.push("--out", out);
+  return args;
+}
+
+await mkdir(outDir, { recursive: true });
+
+const uiManifest = loadUiAssetManifest(root);
+const uiAssets = wantsUiAssets()
+  ? flattenUiAssetManifest(uiManifest, {
+      group: options.group,
+      only: options.only,
+      state: options.state,
+    })
+  : [];
+
+const selectedLegacyAssets = wantsLegacyAssets()
+  ? legacyAssets.filter((asset) => !options.only || asset.name === options.only)
+  : [];
+
+const assets = [
+  ...selectedLegacyAssets.map((asset) => ({ ...asset, key: asset.name, output: `${asset.name}.png` })),
+  ...uiAssets,
+];
+
+const failures = [];
+for (const asset of assets) {
+  const size = sizeForAsset(asset);
+  const out = join(outDir, asset.output);
+  const existing = existingRawPath(asset.output.replace(/\.png$/i, ""));
+  if (existing && !options.force) {
+    console.log(`skip existing ${existing}`);
+    continue;
+  }
+  const args = await generatorArgsFor(asset, size, out);
+  console.log(`generate ${asset.key}${asset.state ? `:${asset.state}` : ""} (${size}, ${options.quality}) -> ${out}`);
   const result = spawnSync(python, args, { cwd: root, stdio: "inherit" });
-  if (result.status !== 0) failures.push(asset.name);
+  if (result.status !== 0) failures.push(asset.key + (asset.state ? `:${asset.state}` : ""));
 }
 
 if (failures.length) {

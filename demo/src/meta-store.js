@@ -91,8 +91,9 @@ export function createMetaStore({
     const defaults = createDefaultMetaState();
     const state = raw && typeof raw === "object" ? raw : {};
     const selected = { ...defaults.selected, ...(state.selected || {}) };
+    const chapterIds = (metaConfig.chapters || []).map((chapter) => chapter.id);
     const unlocks = {
-      chapters: unique([...(defaults.unlocks.chapters || []), ...((state.unlocks || {}).chapters || [])]),
+      chapters: unique(chapterIds.length ? chapterIds : [...(defaults.unlocks.chapters || []), ...((state.unlocks || {}).chapters || [])]),
       difficulties: { ...defaults.unlocks.difficulties, ...((state.unlocks || {}).difficulties || {}) },
       artifacts: unique([...(defaults.unlocks.artifacts || []), ...((state.unlocks || {}).artifacts || [])]),
       startingTalents: unique([...(defaults.unlocks.startingTalents || []), ...((state.unlocks || {}).startingTalents || [])]),
@@ -370,7 +371,8 @@ export function createMetaStore({
 
   function isUnlocked(kind, id) {
     if (!metaState) return true;
-    if (kind === "chapters") return metaState.unlocks.chapters.includes(id);
+    // Mobile UI iteration phase: expose all chapter cards so visual switching can be reviewed directly.
+    if (kind === "chapters") return true;
     if (kind === "artifacts") return metaState.unlocks.artifacts.includes(id);
     if (kind === "startingTalents") return metaState.unlocks.startingTalents.includes(id);
     if (kind === "cultivations") return metaState.unlocks.cultivations.includes(id);

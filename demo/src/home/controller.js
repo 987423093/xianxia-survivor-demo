@@ -16,6 +16,8 @@ export function createHomeController({
   optimizedAssetUrl,
   assetBase = "",
   preloadHomeAssetsForTab = () => {},
+  preloadHomeUiAssetsForTab = () => {},
+  preloadMobileNavAssets = () => {},
   claimableQuestCount,
   setQuestBadge,
   renderers,
@@ -40,6 +42,7 @@ export function createHomeController({
     ui.saveTools.classList.toggle("expanded", homeState.saveToolsOpen);
     ui.saveToolsToggleBtn.setAttribute("aria-expanded", String(homeState.saveToolsOpen));
     ui.saveToolsBody.toggleAttribute("hidden", !homeState.saveToolsOpen);
+    ui.saveToolsToggleBtn.dataset.uiActionState = homeState.saveToolsOpen ? "active" : "idle";
   }
 
   function updateQuestBadges() {
@@ -54,7 +57,10 @@ export function createHomeController({
   }
 
   function applySectionVisual(tabKey = "chapters") {
-    const background = metaConfig?.homeAssets?.tabs?.[tabKey] || metaConfig?.homeAssets?.background;
+    const selectedChapter = metaConfig?.chapters?.find((chapter) => chapter.id === getMetaState()?.selected?.chapterId);
+    const background = tabKey === "home" && getUiMode() === "mobile"
+      ? (selectedChapter?.background || selectedChapter?.fallbackBackground || metaConfig?.homeAssets?.background)
+      : metaConfig?.uiAssets?.tabs?.[tabKey] || metaConfig?.homeAssets?.tabs?.[tabKey] || metaConfig?.homeAssets?.background;
     ui.homePanel.dataset.homeVisual = tabKey;
     if (background) {
       ui.homePanel.style.setProperty("--home-section-bg", `url("${optimizedAssetUrl(background)}")`);
@@ -81,9 +87,13 @@ export function createHomeController({
     ui.homeContent.setAttribute("aria-hidden", String(section === "home"));
     syncMobileHomeNav();
     if (section === "home") {
+      preloadMobileNavAssets();
       applySectionVisual("home");
       ui.mobileHomeLanding.innerHTML = renderers.mobileHomeLanding();
       ui.homeContent.innerHTML = "";
+      if (ui.chapterQuickModal && !ui.chapterQuickModal.classList.contains("hidden")) {
+        ui.chapterQuickModal.innerHTML = renderers.mobileChapterModal?.() || "";
+      }
       return;
     }
 
@@ -95,11 +105,26 @@ export function createHomeController({
     homeState.activeTab = targetTab;
     if (!homeState.preloadedTabs.has(targetTab)) {
       preloadHomeAssetsForTab(targetTab);
+      preloadHomeUiAssetsForTab(targetTab);
       homeState.preloadedTabs.add(targetTab);
     }
     applySectionVisual(targetTab === "more" ? "more" : targetTab);
     const renderer = targetTab === "more" ? renderers.mobileHomeMore : (renderers[targetTab] || renderers.chapters);
     ui.homeContent.innerHTML = renderer();
+  }
+
+  function openChapterQuickModal() {
+    if (!ui.chapterQuickModal || !renderers.mobileChapterModal) return;
+    ui.chapterQuickModal.innerHTML = renderers.mobileChapterModal();
+    ui.chapterQuickModal.classList.remove("hidden");
+    ui.chapterQuickModal.setAttribute("aria-hidden", "false");
+  }
+
+  function closeChapterQuickModal() {
+    if (!ui.chapterQuickModal) return;
+    ui.chapterQuickModal.classList.add("hidden");
+    ui.chapterQuickModal.setAttribute("aria-hidden", "true");
+    ui.chapterQuickModal.innerHTML = "";
   }
 
   function renderHomePanel() {
@@ -112,6 +137,7 @@ export function createHomeController({
     renderCurrencies();
     syncSaveToolsState();
     if (getUiMode() === "mobile") {
+      preloadMobileNavAssets();
       renderMobileHomePanel();
       updateQuestBadges();
       return;
@@ -124,6 +150,7 @@ export function createHomeController({
     ui.homeContent.setAttribute("aria-hidden", "false");
     if (!homeState.preloadedTabs.has(homeState.activeTab)) {
       preloadHomeAssetsForTab(homeState.activeTab);
+      preloadHomeUiAssetsForTab(homeState.activeTab);
       homeState.preloadedTabs.add(homeState.activeTab);
     }
     applySectionVisual(homeState.activeTab);
@@ -148,7 +175,7 @@ export function createHomeController({
         homeState.mobileHomeSection = "quests";
         homeState.activeTab = "quests";
       } else if (defaultTab === "chapters") {
-        homeState.mobileHomeSection = "chapters";
+        homeState.mobileHomeSection = "home";
         homeState.activeTab = "chapters";
       } else {
         homeState.mobileHomeSection = "more";
@@ -165,6 +192,7 @@ export function createHomeController({
     ui.pausePanel.classList.add("hidden");
     ui.upgradePanel.classList.add("hidden");
     ui.resultPanel.classList.add("hidden");
+    closeChapterQuickModal();
     ui.runGoals?.classList.add("hidden");
     ui.goalToast?.classList.add("hidden");
     renderHomePanel();
@@ -188,6 +216,8 @@ export function createHomeController({
     updateQuestBadges,
     syncSaveToolsState,
     renderHomePanel,
+    openChapterQuickModal,
+    closeChapterQuickModal,
     open,
     close,
   };

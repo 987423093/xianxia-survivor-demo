@@ -16,6 +16,13 @@ export function createAssetManager({ theme, ctx, clamp }) {
     loadImageAsset(key, file);
   }
 
+  function preloadNamedAssets(rows = []) {
+    if (!theme.assetBase) return [];
+    const keys = [];
+    for (const row of rows) queueAsset(keys, row.key, row.file);
+    return keys;
+  }
+
   function computeImageBounds(image) {
     const probe = document.createElement("canvas");
     probe.width = image.naturalWidth || image.width;
@@ -247,6 +254,7 @@ export function createAssetManager({ theme, ctx, clamp }) {
     preloadCriticalAssets,
     preloadBattleDeferredAssets,
     preloadHomeAssetsForTab,
+    preloadNamedAssets,
     waitForAssetKeys,
     drawImageCentered,
     drawSpriteFitted,

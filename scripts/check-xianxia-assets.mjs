@@ -2,14 +2,22 @@ import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import { flattenUiOutputs, loadUiAssetManifest } from "./lib/xianxia-ui-assets.mjs";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
 const rawDir = join(root, "assets/generated/xianxia/raw");
 const demoDir = join(root, "demo/assets/xianxia");
 const python = "/Users/zhoutao/miniconda3/bin/python3";
+const uiManifest = loadUiAssetManifest(root);
 
 const maps = ["map-stone-array.png", "map-blood-wasteland.png", "map-thunder-gate.png"];
 const homeBackgrounds = ["home-dongfu-bg.png"];
+const mobileRunDashboards = [
+  "mobile-run-dashboard-portrait-v2.png",
+  "mobile-run-dashboard-stone-array.png",
+  "mobile-run-dashboard-blood-wasteland.png",
+  "mobile-run-dashboard-thunder-gate.png",
+];
 const homeBanners = [
   "home-tab-home.png",
   "home-tab-more.png",
@@ -72,6 +80,7 @@ const uiIcons = [
   "ui-route.png",
 ];
 const rawSheetSources = Object.fromEntries(uiIcons.map((file) => [file, "ui-icon-sheet.png"]));
+const uiAssets = flattenUiOutputs(uiManifest);
 
 function inspectPng(file) {
   if (!existsSync(file)) return null;
@@ -120,14 +129,39 @@ function rawExists(file) {
 const expected = [
   ...maps.map((file) => ({ file, size: "2048x1152", alpha: "opaque" })),
   ...homeBackgrounds.map((file) => ({ file, size: "2048x1152", alpha: "opaque" })),
+  ...mobileRunDashboards.map((file) => ({ file, size: "1152x2048", alpha: "opaque" })),
   ...homeBanners.map((file) => ({ file, size: "1536x640", alpha: "opaque" })),
   ...bosses.map((file) => ({ file, size: "1024x1024", alpha: "transparent" })),
   ...homeIcons.map((file) => ({ file, size: "1024x1024", alpha: "transparent" })),
   ...hudIcons.map((file) => ({ file, size: "1024x1024", alpha: "transparent" })),
   ...uiIcons.map((file) => ({ file, size: "512x512", alpha: "transparent" })),
+  ...uiAssets.map((asset) => ({
+    file: asset.output,
+    size: asset.size,
+    alpha: asset.type === "button" || asset.type === "nav"
+      ? "transparent"
+      : asset.background === "opaque" ? "opaque" : "transparent",
+    allowSizeAtLeast: asset.type === "panel",
+  })),
 ];
 
-const rows = expected.map(({ file, size: expectedSize, alpha: expectedAlpha }) => {
+function parseSize(size) {
+  const [width, height] = String(size).split("x").map((value) => Number(value));
+  return { width, height };
+}
+
+function sizeMatches(actualSize, expectedSize, allowSizeAtLeast = false) {
+  if (actualSize === expectedSize) return true;
+  if (!allowSizeAtLeast) return false;
+  const actual = parseSize(actualSize);
+  const expected = parseSize(expectedSize);
+  return actual.width >= expected.width
+    && actual.height >= expected.height
+    && actual.width <= expected.width + 80
+    && actual.height <= expected.height + 80;
+}
+
+const rows = expected.map(({ file, size: expectedSize, alpha: expectedAlpha, allowSizeAtLeast = false }) => {
   const rawPath = join(rawDir, file);
   const demoPath = join(demoDir, file);
   const inspected = inspectPng(demoPath);
@@ -142,7 +176,7 @@ const rows = expected.map(({ file, size: expectedSize, alpha: expectedAlpha }) =
     mode: inspected?.mode || "",
     size,
     alpha,
-    okSize: size === expectedSize,
+    okSize: sizeMatches(size, expectedSize, allowSizeAtLeast),
     okAlpha: expectedAlpha === "transparent" ? alpha === "0-255" : alpha === "255-255",
   };
 });

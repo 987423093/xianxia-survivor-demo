@@ -5,6 +5,36 @@
  * 作用：把洞府内容渲染从主流程中拆开，保留按职责组织的界面模块。
  */
 export function createHomeRenderers(getContext) {
+  const actionKeyMap = {
+    "start-run": "startRun",
+    startRun: "startRun",
+    openMore: "openMore",
+    backHome: "backHome",
+    openChapters: "openChapters",
+    openBuild: "openBuild",
+    openQuests: "openQuests",
+    applyRecommendation: "applyRecommendation",
+    enterDetail: "enterDetail",
+    returnBattle: "returnBattle",
+    saveTools: "saveTools",
+  };
+
+  function semanticCta(ctx, {
+    action,
+    domAction = "",
+    label,
+    state = "idle",
+    kind = "secondary",
+    extraClass = "",
+    attrs = "",
+    dataAttrs = "",
+    disabled = false,
+  }) {
+    const assetAction = actionKeyMap[action] || action;
+    const actionAttr = domAction || action;
+    return `<button class="mobile-shell-cta-btn mobile-shell-cta-btn-${kind}${extraClass ? ` ${extraClass}` : ""}" data-action="${actionAttr}"${dataAttrs}${disabled ? " disabled" : ""} type="button"${ctx.uiButtonAttrs(assetAction, state, kind)}${attrs}>${label}</button>`;
+  }
+
   function selectedBuildSummary() {
     const ctx = getContext();
     const artifact = ctx.selectedArtifact();
@@ -17,6 +47,156 @@ export function createHomeRenderers(getContext) {
         <span><b>初始天赋</b>${talents.length ? talents.map((item) => item.name).join(" / ") : "未选择"}</span>
         <span>${cultivation ? ctx.homeImage(cultivation.icon, cultivation.name, "summary-icon") : ""}<b>起手功法</b>${cultivation?.name || "未选择"} Lv.${ctx.metaState.progression.cultivations[cultivation?.id] || 1}</span>
         <span class="build-tags"><b>流派</b>${tagIds.length ? tagIds.map(ctx.styleTagToken).join("") : "未成型"}</span>
+      </div>
+    `;
+  }
+
+  function mobileBuildStrip() {
+    const ctx = getContext();
+    const artifact = ctx.selectedArtifact();
+    const cultivation = ctx.selectedCultivation();
+    const talents = ctx.selectedTalents();
+    const tagIds = ctx.collectBuildTags([artifact, cultivation, ...talents]);
+    return `
+      <div class="mobile-build-strip" aria-label="当前构筑摘要">
+        <span>${artifact ? ctx.homeImage(artifact.icon, artifact.name, "summary-icon") : ""}<b>法宝</b>${artifact?.name || "未选择"} Lv.${ctx.metaState.progression.artifacts[artifact?.id] || 1}</span>
+        <span>${cultivation ? ctx.homeImage(cultivation.icon, cultivation.name, "summary-icon") : ""}<b>功法</b>${cultivation?.name || "未选择"} Lv.${ctx.metaState.progression.cultivations[cultivation?.id] || 1}</span>
+        <span><b>天赋</b>${talents.length ? talents.map((item) => item.name).slice(0, 2).join(" / ") : "未选择"}</span>
+        <span class="mobile-build-tags"><b>流派</b>${tagIds.length ? tagIds.slice(0, 2).map(ctx.styleTagToken).join("") : "未成型"}</span>
+      </div>
+    `;
+  }
+
+  function mobileRunPosterStyle(ctx, selectedChapter) {
+    const dashboard = selectedChapter?.mobileRunDashboard || "mobile-run-dashboard-portrait-v2.png";
+    const dashboardUrl = ctx.optimizedAssetUrl?.(dashboard) || `${ctx.assetBase || ""}${dashboard}`;
+    const style = dashboardUrl ? `--mobile-run-dashboard:url('${dashboardUrl}')` : "";
+    return style ? ` style="${style}"` : "";
+  }
+
+  function mobileDropText(ctx, chapter, difficulty) {
+    if (!chapter) return "待选章节";
+    const estimate = ctx.chapterDropEstimate(chapter, difficulty);
+    const priority = ["spiritStone", "dao", "mysticIron", "spiritEssence", "thunderShard"];
+    const rows = priority
+      .map((key) => [key, estimate[key] || 0])
+      .filter(([, value]) => value > 0)
+      .slice(0, 3)
+      .map(([key, value]) => `${ctx.currencyName(key)} ${value}`);
+    return rows.length ? rows.join(" / ") : "基础资源";
+  }
+
+  function mobileAdviceText(readiness) {
+    const compact = String(readiness?.summary || "")
+      .replace(/^建议/, "")
+      .split(/[，,]/)
+      .map((item) => item.trim().replace(/^先?补/, ""))
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((item) => item.replace(/或.*/, ""));
+    return compact.length ? compact.join(" / ") : "按推荐补强";
+  }
+
+  function renderMobileChapterModal() {
+    const ctx = getContext();
+    const selectedDifficulty = ctx.getSelectedDifficulty();
+    const selectedChapterId = ctx.metaState.selected.chapterId;
+    const detailChapterId = ctx.homeState.mobileChapterDetailId || selectedChapterId;
+    const detailChapter = ctx.metaConfig.chapters.find((chapter) => chapter.id === detailChapterId)
+      || ctx.getSelectedChapter()
+      || ctx.metaConfig.chapters[0];
+    const detailLocked = !ctx.isUnlocked("chapters", detailChapter.id);
+    const detailSelected = selectedChapterId === detailChapter.id;
+    const detailRecord = ctx.metaState.records.chapters[detailChapter.id];
+    const detailDifficulty = detailSelected ? selectedDifficulty : ctx.metaConfig.difficulties[0];
+    const bossRecord = ctx.bossRecordSummary(detailChapter);
+    const bossMechanics = detailChapter.bossMechanics || {};
+    const bossPresetNames = ctx.matchingPresetNames(detailChapter);
+    return `
+      <div class="home-inline-modal-backdrop" data-action="close-chapter-modal"></div>
+      <div class="home-inline-modal-panel" role="dialog" aria-modal="true"${ctx.uiPanelAttrs("chapters", "overview")}>
+        <div class="home-inline-modal-head">
+          <div>
+            <strong>章节情报</strong>
+            <p>${selectedDifficulty?.name || "当前难度"} · 点击章节可设为下一局目标</p>
+          </div>
+          <button data-action="close-chapter-modal" type="button" aria-label="关闭章节情报">关闭</button>
+        </div>
+        <div class="mobile-chapter-sheet">
+          <nav class="mobile-chapter-rail" aria-label="章节列表">
+            ${ctx.metaConfig.chapters.map((chapter) => {
+              const locked = !ctx.isUnlocked("chapters", chapter.id);
+              const selected = selectedChapterId === chapter.id;
+              const viewing = detailChapter.id === chapter.id;
+              return `
+                <button
+                  class="${viewing ? "viewing" : ""} ${selected ? "selected" : ""} ${locked ? "locked" : ""}"
+                  data-action="preview-mobile-chapter"
+                  data-id="${chapter.id}"
+                  type="button"
+                  ${locked ? "disabled" : ""}
+                >
+                  ${ctx.homeImage(ctx.thumbnailAsset(chapter.background || chapter.fallbackBackground), chapter.name, "mobile-chapter-rail-bg", chapter.background || chapter.fallbackBackground)}
+                  <span>${chapter.name}</span>
+                  <small>${selected ? "目标" : locked ? "未解锁" : "可挑战"}</small>
+                </button>
+              `;
+            }).join("")}
+          </nav>
+          <article class="mobile-chapter-card ${detailLocked ? "locked" : ""} ${detailSelected ? "selected" : ""}">
+            ${ctx.homeImage(ctx.thumbnailAsset(detailChapter.background || detailChapter.fallbackBackground), detailChapter.name, "home-thumb mobile-chapter-thumb", detailChapter.background || detailChapter.fallbackBackground)}
+            <div class="home-card-body">
+              <span class="mobile-chapter-state">${detailSelected ? "当前章节" : detailLocked ? "未解锁" : "可挑战"}</span>
+              <h3>${detailChapter.name}</h3>
+              <p>${detailChapter.desc}</p>
+              <small>Boss：${detailChapter.bossName} · 最佳 ${detailRecord?.bestKills || 0} 斩妖 / ${ctx.formatTime(detailRecord?.bestTime || 0)}</small>
+            </div>
+            <div class="chapter-rewards">
+              <span>主要掉落</span>
+              ${ctx.chapterRewardChipRows(detailChapter, detailDifficulty)}
+            </div>
+            ${ctx.chapterRewardHighlights(detailChapter, detailDifficulty, detailLocked)}
+            <div class="mobile-chapter-info-block">${ctx.renderRunEventPreview(detailChapter, detailDifficulty, detailLocked)}</div>
+            ${ctx.renderChapterMaterialTarget(detailChapter, detailDifficulty, detailSelected)}
+            <section class="mobile-boss-dossier">
+              <div class="mobile-boss-dossier-head">
+                ${ctx.homeImage(detailChapter.bossAsset || detailChapter.background || detailChapter.fallbackBackground, detailChapter.bossName, "mobile-boss-portrait", detailChapter.background || detailChapter.fallbackBackground)}
+                <div>
+                  <span>${detailLocked ? "未遭遇" : bossRecord.cleared.length ? "已镇压" : "待挑战"}</span>
+                  <h4>${detailChapter.bossName}</h4>
+                  <p>${bossMechanics.subtitle || detailChapter.name}</p>
+                </div>
+              </div>
+              <div class="mobile-boss-record">
+                <span><b>${bossRecord.clearedText}</b>首通记录</span>
+                <span><b>${ctx.formatTime(bossRecord.bestTime)}</b>最佳存活</span>
+                <span><b>${bossRecord.bestKills}</b>最高斩妖</span>
+              </div>
+              <div class="mobile-boss-notes">
+                <span>阶段：${ctx.bossPhaseTimeline(detailChapter)}</span>
+                <span>推荐：${ctx.chapterBuildContextTags(detailChapter).map(ctx.styleTagToken).join("")}${bossPresetNames.length ? ` ${bossPresetNames.join(" / ")}` : ""}</span>
+                <span>警告：${detailChapter.bossWarning || bossMechanics.introText || "Boss 即将出场"}</span>
+              </div>
+            </section>
+            <div class="mobile-chapter-info-block">${ctx.renderBossGuide(detailChapter, detailDifficulty)}</div>
+            ${ctx.renderChapterReadiness(detailChapter, detailDifficulty, detailLocked)}
+            <small class="chapter-unlock">${detailLocked ? `解锁：${ctx.unlockConditionText(detailChapter.unlock)}` : `首通：${ctx.firstClearSummary(detailChapter)}`}</small>
+            <div class="difficulty-row">
+              ${ctx.metaConfig.difficulties
+                .map((difficulty) => `<button data-action="select-difficulty" data-chapter="${detailChapter.id}" data-difficulty="${difficulty.id}" class="${detailSelected && ctx.metaState.selected.difficultyId === difficulty.id ? "active" : ""}" ${detailLocked || !ctx.difficultyAllowed(detailChapter.id, difficulty.id) ? "disabled" : ""}>${difficulty.name}</button>`)
+                .join("")}
+            </div>
+            ${semanticCta(ctx, {
+              action: "startRun",
+              domAction: "select-chapter",
+              label: detailSelected ? "当前目标" : "选为目标",
+              state: detailSelected ? "active" : "idle",
+              kind: "primary",
+              dataAttrs: ` data-id="${detailChapter.id}"`,
+              disabled: detailLocked,
+            })}
+          </article>
+        </div>
       </div>
     `;
   }
@@ -102,14 +282,22 @@ export function createHomeRenderers(getContext) {
               <div class="build-tags">${(preset.tags || []).map(ctx.styleTagToken).join("")}</div>
               <small>${availability.available ? `适合：${(preset.recommendedChapters || []).map((id) => ctx.mapById(ctx.metaConfig.chapters)[id]?.name || id).join(" / ") || "通用"}` : `可先套用已解锁项，缺少：${availability.missing.join(" / ")}`}</small>
             </div>
-            <button data-action="apply-preset" data-id="${preset.id}" ${availability.usable ? "" : "disabled"}>${availability.available ? (recommended ? "本章推荐" : "套用") : "套用已解锁"}</button>
+            ${semanticCta(ctx, {
+              action: "applyRecommendation",
+              domAction: "apply-preset",
+              label: availability.available ? (recommended ? "本章推荐" : "套用") : "套用已解锁",
+              state: recommended ? "active" : "idle",
+              kind: "primary",
+              dataAttrs: ` data-id="${preset.id}"`,
+              disabled: !availability.usable,
+            })}
           </article>
         `;
       })
       .join("");
     return `
       <div class="build-planner">
-        <section class="home-card chapter-build-card ${recommendation.applied ? "applied" : ""}">
+        <section class="home-card chapter-build-card ${recommendation.applied ? "applied" : ""}"${ctx.uiPanelAttrs("start", "overview")}>
           <div class="build-preview-head">
             <h2>本章策令</h2>
             <small>${recommendation.applied ? "已按本章配置" : "按章节和 Boss 机制推荐"}</small>
@@ -140,7 +328,13 @@ export function createHomeRenderers(getContext) {
             ${patchPlan.available && !patchPlan.applied ? `
               <div class="readiness-action">
                 <span>${patchPlan.reason}：${patchPlan.names.slice(0, 3).join(" / ")}</span>
-                <button data-action="apply-weakness-patch" type="button">补短板</button>
+                ${semanticCta(ctx, {
+                  action: "applyRecommendation",
+                  domAction: "apply-weakness-patch",
+                  label: "补短板",
+                  state: "emphasis",
+                  kind: "primary",
+                })}
               </div>
             ` : ""}
           </div>
@@ -148,7 +342,14 @@ export function createHomeRenderers(getContext) {
             ${recommendation.reasons.map((reason) => `<li>${reason}</li>`).join("")}
           </ul>
           ${recommendation.missing.length ? `<small class="cost-hint">预设未全解锁：${recommendation.missing.join(" / ")}，已用可用组件替代。</small>` : ""}
-          <button data-action="apply-chapter-recommendation" ${recommendation.applied ? "disabled" : ""}>${recommendation.applied ? "已套用" : "套用本章推荐"}</button>
+          ${semanticCta(ctx, {
+            action: "applyRecommendation",
+            domAction: "apply-chapter-recommendation",
+            label: recommendation.applied ? "已套用" : "套用本章推荐",
+            state: recommendation.applied ? "active" : "emphasis",
+            kind: "primary",
+            disabled: recommendation.applied,
+          })}
         </section>
         <section class="home-card build-preview-card">
           <div class="build-preview-head">
@@ -173,28 +374,28 @@ export function createHomeRenderers(getContext) {
 
   function renderChapterTab() {
     const ctx = getContext();
-    return `${ctx.renderHomeBanner("chapters")}<div class="home-grid chapter-grid">${ctx.metaConfig.chapters
+    return `${ctx.renderHomeBanner("chapters")}<section class="home-card chapter-overview-card"${ctx.uiPanelAttrs("chapters", "overview")}><div class="build-preview-head"><h2>章节总览</h2><small>${ctx.metaConfig.chapters.length} 个章节 · ${ctx.metaConfig.difficulties.length} 档难度</small></div><p>按章节查看首通、掉落、奇遇与 Boss 压力，先决定目标再回开局调构筑。</p></section><div class="home-grid chapter-grid">${ctx.metaConfig.chapters
       .map((chapter) => {
         const locked = !ctx.isUnlocked("chapters", chapter.id);
         const selected = ctx.metaState.selected.chapterId === chapter.id;
         const record = ctx.metaState.records.chapters[chapter.id];
         const difficulty = selected ? ctx.getSelectedDifficulty() : ctx.metaConfig.difficulties[0];
         return `
-          <article class="home-card chapter-card ${locked ? "locked" : ""} ${selected ? "selected" : ""}">
+          <article class="home-card chapter-card ${locked ? "locked" : ""} ${selected ? "selected" : ""}"${ctx.uiPanelAttrs("chapters", "chapterCard")}>
             ${ctx.homeImage(ctx.thumbnailAsset(chapter.background || chapter.fallbackBackground), chapter.name, "home-thumb", chapter.background || chapter.fallbackBackground)}
             <div class="home-card-body">
               <h2>${chapter.name}</h2>
               <p>${chapter.desc}</p>
               <small>Boss：${chapter.bossName} · 最佳 ${record?.bestKills || 0} 斩妖 / ${ctx.formatTime(record?.bestTime || 0)}</small>
             </div>
-            <div class="chapter-rewards">
+            <div class="chapter-rewards"${ctx.uiPanelAttrs("chapters", "drops")}>
               <span>主要掉落</span>
               ${ctx.chapterRewardChipRows(chapter, difficulty)}
             </div>
             ${ctx.chapterRewardHighlights(chapter, difficulty, locked)}
-            ${ctx.renderRunEventPreview(chapter, difficulty, locked)}
+            <div${ctx.uiPanelAttrs("chapters", "encounter")}>${ctx.renderRunEventPreview(chapter, difficulty, locked)}</div>
             ${ctx.renderChapterMaterialTarget(chapter, difficulty, selected)}
-            ${ctx.renderBossGuide(chapter, difficulty)}
+            <div${ctx.uiPanelAttrs("chapters", "boss")}>${ctx.renderBossGuide(chapter, difficulty)}</div>
             ${ctx.renderChapterReadiness(chapter, difficulty, locked)}
             <small class="chapter-unlock">${locked ? `解锁：${ctx.unlockConditionText(chapter.unlock)}` : `首通：${ctx.firstClearSummary(chapter)}`}</small>
             <div class="difficulty-row">
@@ -202,8 +403,24 @@ export function createHomeRenderers(getContext) {
                 .map((difficulty) => `<button data-action="select-difficulty" data-chapter="${chapter.id}" data-difficulty="${difficulty.id}" class="${selected && ctx.metaState.selected.difficultyId === difficulty.id ? "active" : ""}" ${locked || !ctx.difficultyAllowed(chapter.id, difficulty.id) ? "disabled" : ""}>${difficulty.name}</button>`)
                 .join("")}
             </div>
-            <button data-action="select-chapter" data-id="${chapter.id}" ${locked ? "disabled" : ""}>${selected ? "已选择" : "选择章节"}</button>
-            <button data-action="tune-chapter-build" data-id="${chapter.id}" ${locked ? "disabled" : ""}>调构筑</button>
+            ${semanticCta(ctx, {
+              action: "startRun",
+              domAction: "select-chapter",
+              label: selected ? "当前挑战" : "选择章节",
+              state: selected ? "active" : "idle",
+              kind: "primary",
+              dataAttrs: ` data-id="${chapter.id}"`,
+              disabled: locked,
+            })}
+            ${semanticCta(ctx, {
+              action: "openChapters",
+              domAction: "tune-chapter-build",
+              label: "调构筑",
+              state: "idle",
+              kind: "secondary",
+              dataAttrs: ` data-id="${chapter.id}"`,
+              disabled: locked,
+            })}
           </article>
         `;
       })
@@ -215,7 +432,14 @@ export function createHomeRenderers(getContext) {
     const selectedDifficulty = ctx.materialPreviewDifficulty();
     return `
       ${ctx.renderHomeBanner("materials")}
-      ${ctx.renderMaterialDifficultyPreview()}
+      <section class="home-card material-overview-card"${ctx.uiPanelAttrs("materials", "overview")}>
+        <div class="build-preview-head">
+          <h2>材料路线</h2>
+          <small>${selectedDifficulty?.name || "当前难度"} 收益预览</small>
+        </div>
+        <p>按缺口看章节收益，优先确定当前要补的灵石、玄铁、灵髓和雷晶。</p>
+        ${ctx.renderMaterialDifficultyPreview()}
+      </section>
       <div class="materials-dashboard">
         ${Object.entries(ctx.metaConfig.currencies)
           .map(([key, config]) => {
@@ -261,69 +485,105 @@ export function createHomeRenderers(getContext) {
     `;
   }
 
-  function renderMobileHomeLanding() {
+  function renderHomeOverview({ mobile = false } = {}) {
     const ctx = getContext();
     const selectedChapter = ctx.getSelectedChapter();
     const selectedDifficulty = ctx.getSelectedDifficulty();
-    const recommendation = ctx.chapterBuildRecommendation();
     const nextQuest = ctx.nextQuestGoal();
     const rewardsSummary = nextQuest
       ? `${nextQuest.quest.name} · ${ctx.questProgressText(nextQuest.quest, nextQuest.state.progress)}`
       : `${ctx.claimableQuestCount()} 个悬赏可领取`;
+    const openChaptersButton = mobile
+      ? `<button class="mobile-shell-cta-btn mobile-shell-cta-btn-secondary" data-action="open-chapter-modal" type="button"${ctx.uiButtonAttrs("openChapters", "idle", "secondary")}>章节情报</button>`
+      : semanticCta(ctx, {
+          action: "openChapters",
+          domAction: "open-tab",
+          label: "调整章节",
+          state: "idle",
+          kind: "secondary",
+          dataAttrs: ' data-tab="chapters"',
+        });
+    const openBuildButton = mobile
+      ? `<button class="mobile-shell-cta-btn mobile-shell-cta-btn-secondary" data-action="open-mobile-home-section" data-section="build" type="button"${ctx.uiButtonAttrs("openBuild", "idle", "secondary")}>调整构筑</button>`
+      : semanticCta(ctx, {
+          action: "openBuild",
+          domAction: "open-tab",
+          label: "调整构筑",
+          state: "idle",
+          kind: "secondary",
+          dataAttrs: ' data-tab="start"',
+        });
+    const openQuestsButton = mobile
+      ? `<button class="mobile-shell-cta-btn mobile-shell-cta-btn-secondary" data-action="open-mobile-home-section" data-section="quests" type="button"${ctx.uiButtonAttrs("openQuests", "idle", "secondary")}>查看悬赏</button>`
+      : semanticCta(ctx, {
+          action: "openQuests",
+          domAction: "open-tab",
+          label: "查看悬赏",
+          state: "idle",
+          kind: "secondary",
+          dataAttrs: ' data-tab="quests"',
+        });
+    if (mobile) {
+      const readiness = ctx.chapterReadinessReport(undefined, selectedChapter, selectedDifficulty);
+      const dropText = mobileDropText(ctx, selectedChapter, selectedDifficulty);
+      return `
+        <div class="mobile-home-landing-grid">
+          <article class="mobile-run-card"${mobileRunPosterStyle(ctx, selectedChapter)}>
+            <div class="mobile-run-copy">
+              <section class="mobile-run-hero" aria-label="当前章节">
+                <div>
+                  <div class="mobile-run-title-row">
+                    <h2>${selectedChapter?.name || "未定章节"}</h2>
+                    <button class="mobile-change-chapter-btn" data-action="open-chapter-modal" type="button"${ctx.uiButtonAttrs("openChapters", "idle", "secondary")}>更换</button>
+                  </div>
+                  <p>${selectedDifficulty?.name || "未定难度"} · ${selectedChapter?.bossName || "先选章节再入世"}</p>
+                  <small>${selectedChapter?.desc || "当前章节尚未选择。"}</small>
+                </div>
+              </section>
+              <div class="mobile-run-intel" aria-label="本局情报">
+                <span><b>战备</b><em>${readiness.tier} · ${readiness.power.total}/${readiness.expected}</em></span>
+                <span><b>掉落</b><em>${dropText}</em></span>
+                <span><b>建议</b><em>${mobileAdviceText(readiness)}</em></span>
+              </div>
+              ${mobileBuildStrip()}
+            </div>
+            <div class="mobile-primary-actions">
+              <button class="mobile-shell-cta-btn mobile-shell-cta-btn-primary mobile-start-run-btn" data-action="start-run" type="button"${ctx.uiButtonAttrs("startRun", "emphasis", "primary")}>入世斩妖</button>
+            </div>
+          </article>
+        </div>
+      `;
+    }
     return `
       ${ctx.renderHomeBanner("home")}
-      <div class="mobile-home-landing-hero">
-        <div>
-          <strong>今日洞府策令</strong>
-          <p>先确认章节和构筑，再一键入世。其余情报收进详情页，不让主入口变长。</p>
-        </div>
-        <button data-action="open-mobile-home-section" data-section="more" type="button">查看更多</button>
-      </div>
       <div class="mobile-home-landing-grid">
-        <article class="home-card mobile-home-card mobile-home-card-primary">
-          <span class="mobile-home-card-kicker">继续开局</span>
+        <article class="home-card mobile-home-card mobile-home-card-primary"${ctx.uiPanelAttrs("home", "continueRun")}>
           <h2>${selectedChapter?.name || "未定章节"}</h2>
           <p>${selectedDifficulty?.name || "未定难度"} · ${selectedChapter?.bossName || "先选章节再入世"}</p>
           <small>${selectedChapter?.desc || "当前章节尚未选择。"}</small>
-          <div class="mobile-home-card-actions">
-            <button data-action="start-run" type="button">入世斩妖</button>
-            <button data-action="open-mobile-home-section" data-section="chapters" type="button">调整章节</button>
-          </div>
-        </article>
-        <article class="home-card mobile-home-card">
-          <span class="mobile-home-card-kicker">当前构筑</span>
-          <h2>本局起手</h2>
           <div class="mobile-home-build-summary">
             ${selectedBuildSummary()}
           </div>
           <div class="mobile-home-card-actions">
-            <button data-action="open-mobile-home-section" data-section="build" type="button">调整构筑</button>
+            <button class="mobile-shell-cta-btn mobile-shell-cta-btn-primary" data-action="start-run" type="button"${ctx.uiButtonAttrs("startRun", "emphasis", "primary")}>入世斩妖</button>
+            ${openChaptersButton}
+            ${openBuildButton}
           </div>
         </article>
-        <article class="home-card mobile-home-card">
+        <article class="home-card mobile-home-card"${ctx.uiPanelAttrs("home", "claimableRewards")}>
           <span class="mobile-home-card-kicker">可领奖励</span>
           <h2>${ctx.claimableQuestCount()} 个悬赏待处理</h2>
           <p>${rewardsSummary}</p>
           <small>先领掉现成奖励，再决定这一局刷什么。</small>
           <div class="mobile-home-card-actions">
-            <button data-action="open-mobile-home-section" data-section="quests" type="button">查看悬赏</button>
-          </div>
-        </article>
-        <article class="home-card mobile-home-card">
-          <span class="mobile-home-card-kicker">章节推荐</span>
-          <h2>${recommendation.artifact?.name || "通用构筑"}</h2>
-          <p>${recommendation.reasons?.[0] || "按当前章节和 Boss 机制推荐开局组件。"}</p>
-          <div class="build-tags">${recommendation.tags.map(ctx.styleTagToken).join("")}</div>
-          <div class="mobile-home-card-actions">
-            <button data-action="apply-chapter-recommendation" type="button">套用推荐</button>
-            <button data-action="open-mobile-home-section" data-section="chapters" type="button">看章节详情</button>
+            ${openQuestsButton}
           </div>
         </article>
       </div>
     `;
   }
 
-  function renderMobileHomeMore() {
+  function renderMoreOverview({ mobile = false } = {}) {
     const ctx = getContext();
     const rows = [
       { tab: "journey", title: "历练总览", desc: "看章节首通、成长缺口和下一步刷图建议。" },
@@ -334,27 +594,62 @@ export function createHomeRenderers(getContext) {
       { tab: "cultivation", title: "功法", desc: "切换起手功法并查看成长收益。" },
       { tab: "facilities", title: "洞府设施", desc: "查看蒲团、炼丹、藏经阁等局外成长。" },
     ];
+    const backHomeButton = mobile
+      ? `<button class="mobile-shell-cta-btn mobile-shell-cta-btn-secondary" data-action="open-mobile-home-section" data-section="home" type="button"${ctx.uiButtonAttrs("backHome", "idle", "secondary")}>回首页</button>`
+      : semanticCta(ctx, {
+          action: "backHome",
+          domAction: "open-tab",
+          label: "回首页",
+          state: "idle",
+          kind: "secondary",
+          dataAttrs: ' data-tab="home"',
+        });
     return `
       ${ctx.renderHomeBanner("more")}
-      <section class="mobile-home-more">
-        <div class="mobile-home-more-head">
+      <section class="mobile-home-more more-overview">
+        <div class="mobile-home-more-head"${ctx.uiPanelAttrs("more", "header")}>
           <div>
             <strong>更多事务</strong>
-            <p>材料、图鉴、成长和存档工具都收在这里，避免首页变成桌面版缩小图。</p>
+            <p>材料、图鉴和成长路线都收在这里，避免首页变成桌面版缩小图。</p>
           </div>
-          <button data-action="open-mobile-home-section" data-section="home" type="button">回首页</button>
+          ${backHomeButton}
         </div>
         <div class="mobile-home-more-grid">
           ${rows.map((row) => `
-            <article class="home-card mobile-home-more-card">
+            <article class="home-card mobile-home-more-card"${ctx.uiPanelAttrs("more", row.tab)}>
               <h2>${row.title}</h2>
               <p>${row.desc}</p>
-              <button data-action="open-mobile-more-tab" data-tab="${row.tab}" type="button">进入详情</button>
+              ${mobile
+                ? `<button class="mobile-shell-cta-btn mobile-shell-cta-btn-secondary" data-action="open-mobile-more-tab" data-tab="${row.tab}" type="button"${ctx.uiButtonAttrs("enterDetail", "idle", "secondary")}>进入详情</button>`
+                : semanticCta(ctx, {
+                    action: "enterDetail",
+                    domAction: "open-tab",
+                    label: "进入详情",
+                    state: "idle",
+                    kind: "secondary",
+                    dataAttrs: ` data-tab="${row.tab}"`,
+                  })}
             </article>
           `).join("")}
         </div>
       </section>
     `;
+  }
+
+  function renderHomeTab() {
+    return renderHomeOverview({ mobile: false });
+  }
+
+  function renderMoreTab() {
+    return renderMoreOverview({ mobile: false });
+  }
+
+  function renderMobileHomeLanding() {
+    return renderHomeOverview({ mobile: true });
+  }
+
+  function renderMobileHomeMore() {
+    return renderMoreOverview({ mobile: true });
   }
 
   function renderJourneyTab() {
@@ -370,7 +665,7 @@ export function createHomeRenderers(getContext) {
     return `
       ${ctx.renderHomeBanner("journey")}
       <section class="journey-dashboard">
-        <article class="home-card journey-hero">
+        <article class="home-card journey-hero"${ctx.uiPanelAttrs("journey", "hero")}>
           <div>
             <h2>历练总览</h2>
             <p>把章节首通、悬赏、境界和下一次升级串成一条路线，回洞府后先看这里决定下一局刷什么。</p>
@@ -433,7 +728,14 @@ export function createHomeRenderers(getContext) {
                 <span>${row.label}</span>
                 <strong>${row.title}</strong>
                 <p>${row.body}</p>
-                <button data-action="open-tab" data-tab="${row.tab}" data-focus-materials="${(row.focusMaterials || []).join(",")}" type="button">${row.action}</button>
+                ${semanticCta(ctx, {
+                  action: row.tab === "chapters" ? "openChapters" : row.tab === "quests" ? "openQuests" : "enterDetail",
+                  domAction: "open-tab",
+                  label: row.action,
+                  state: "idle",
+                  kind: row.tab === "chapters" ? "primary" : "secondary",
+                  dataAttrs: ` data-tab="${row.tab}" data-focus-materials="${(row.focusMaterials || []).join(",")}"`,
+                })}
               </article>
             `)
             .join("")}
@@ -446,7 +748,14 @@ export function createHomeRenderers(getContext) {
     const ctx = getContext();
     return `
       ${ctx.renderHomeBanner("quests")}
-      ${ctx.renderQuestCompletionSummary()}
+      <section class="home-card quest-overview-card"${ctx.uiPanelAttrs("quests", "overview")}>
+        <div class="build-preview-head">
+          <h2>悬赏总览</h2>
+          <small>${ctx.claimableQuestCount()} 个可领取</small>
+        </div>
+        <p>先领现成奖励，再决定下一局是冲章节、补材料还是追组合。</p>
+        ${ctx.renderQuestCompletionSummary()}
+      </section>
       <div class="home-grid quest-grid">
         ${ctx.metaConfig.quests
           .map((quest) => {
@@ -468,7 +777,15 @@ export function createHomeRenderers(getContext) {
                 <div class="quest-rewards">
                   ${ctx.formatCostTokens(quest.rewards, "material-token reward-token")}
                 </div>
-                <button data-action="claim-quest" data-id="${quest.id}" ${state.claimable ? "" : "disabled"}>${state.claimed ? "已领取" : "领取悬赏"}</button>
+                ${semanticCta(ctx, {
+                  action: "applyRecommendation",
+                  domAction: "claim-quest",
+                  label: state.claimed ? "已领取" : "领取悬赏",
+                  state: state.claimed ? "active" : "emphasis",
+                  kind: "primary",
+                  dataAttrs: ` data-id="${quest.id}"`,
+                  disabled: !state.claimable,
+                })}
               </article>
             `;
           })
@@ -483,7 +800,7 @@ export function createHomeRenderers(getContext) {
     return `
       ${ctx.renderHomeBanner("bestiary")}
       <section class="bestiary-overview">
-        <article class="home-card bestiary-hero">
+        <article class="home-card bestiary-hero"${ctx.uiPanelAttrs("bestiary", "hero")}>
           <div>
             <h2>Boss 图鉴</h2>
             <p>按章节查看 Boss 技能、阶段、推荐构筑和首通记录。选定挑战后可直接回到开局页调整构筑，再入世开战。</p>
@@ -547,8 +864,24 @@ export function createHomeRenderers(getContext) {
                     ${ctx.metaConfig.difficulties
                       .map((item) => `<button data-action="select-bestiary-difficulty" data-chapter="${chapter.id}" data-difficulty="${item.id}" class="${selected && ctx.metaState.selected.difficultyId === item.id ? "active" : ""}" ${locked || !ctx.difficultyAllowed(chapter.id, item.id) ? "disabled" : ""}>${item.name}</button>`)
                       .join("")}
-                    <button data-action="challenge-boss" data-id="${chapter.id}" ${locked ? "disabled" : ""}>${selected ? "当前挑战" : "选择挑战"}</button>
-                    <button data-action="tune-chapter-build" data-id="${chapter.id}" ${locked ? "disabled" : ""}>调构筑</button>
+                    ${semanticCta(ctx, {
+                      action: "startRun",
+                      domAction: "challenge-boss",
+                      label: selected ? "当前挑战" : "选择挑战",
+                      state: selected ? "active" : "emphasis",
+                      kind: "primary",
+                      dataAttrs: ` data-id="${chapter.id}"`,
+                      disabled: locked,
+                    })}
+                    ${semanticCta(ctx, {
+                      action: "openBuild",
+                      domAction: "tune-chapter-build",
+                      label: "调构筑",
+                      state: "idle",
+                      kind: "secondary",
+                      dataAttrs: ` data-id="${chapter.id}"`,
+                      disabled: locked,
+                    })}
                   </div>
                 </div>
               </article>
@@ -566,7 +899,7 @@ export function createHomeRenderers(getContext) {
     const cultivationMap = ctx.mapById(ctx.metaConfig.cultivations);
     return `
       ${ctx.renderHomeBanner("start")}
-      ${selectedBuildSummary()}
+      <section class="home-card start-overview-card"${ctx.uiPanelAttrs("start", "overview")}>${selectedBuildSummary()}</section>
       ${renderBuildPlanner()}
       ${ctx.renderBuildSynergyPanel()}
       <div class="home-list build-loadout">
@@ -595,7 +928,7 @@ export function createHomeRenderers(getContext) {
 
   function renderTalentTreeTab() {
     const ctx = getContext();
-    return `${ctx.renderHomeBanner("talents")}<div class="home-grid">${ctx.metaConfig.talentTrees
+    return `${ctx.renderHomeBanner("talents")}<section class="home-card talent-overview-card"${ctx.uiPanelAttrs("talents", "overview")}><div class="build-preview-head"><h2>天赋树</h2><small>优先补本章短板，再追长期成长节点</small></div><p>天赋是最直接的局外调参位，先处理当前章节的伤害、生存和机动缺口。</p>${semanticCta(ctx, { action: "applyRecommendation", domAction: "apply-chapter-recommendation", label: "套用推荐", state: "emphasis", kind: "primary" })}</section><div class="home-grid">${ctx.metaConfig.talentTrees
       .map((tree) => {
         const level = ctx.metaState.progression.talentTree[tree.id] || 0;
         const maxed = level >= tree.maxLevel;
@@ -620,7 +953,7 @@ export function createHomeRenderers(getContext) {
 
   function renderArtifactsTab() {
     const ctx = getContext();
-    return `${ctx.renderHomeBanner("artifacts")}<div class="home-grid">${ctx.metaConfig.artifacts
+    return `${ctx.renderHomeBanner("artifacts")}<section class="home-card artifact-overview-card"${ctx.uiPanelAttrs("artifacts", "overview")}><div class="build-preview-head"><h2>法宝总览</h2><small>本命法宝决定这一局的主轴标签</small></div><p>先围绕章节推荐选主法宝，再补足等级和联动标签，不在入口页堆太多说明。</p>${semanticCta(ctx, { action: "applyRecommendation", domAction: "apply-chapter-recommendation", label: "套用推荐", state: "emphasis", kind: "primary" })}</section><div class="home-grid">${ctx.metaConfig.artifacts
       .map((artifact) => {
         const unlocked = ctx.isUnlocked("artifacts", artifact.id);
         const level = ctx.metaState.progression.artifacts[artifact.id] || 0;
@@ -647,7 +980,7 @@ export function createHomeRenderers(getContext) {
 
   function renderCultivationTab() {
     const ctx = getContext();
-    return `${ctx.renderHomeBanner("cultivation")}<div class="home-grid">${ctx.metaConfig.cultivations
+    return `${ctx.renderHomeBanner("cultivation")}<section class="home-card cultivation-overview-card"${ctx.uiPanelAttrs("cultivation", "overview")}><div class="build-preview-head"><h2>功法总览</h2><small>起手功法决定前中期节奏和法术偏向</small></div><p>先选功法再细调天赋和法宝，保持章节推荐与局内成型节奏一致。</p>${semanticCta(ctx, { action: "applyRecommendation", domAction: "apply-chapter-recommendation", label: "套用推荐", state: "emphasis", kind: "primary" })}</section><div class="home-grid">${ctx.metaConfig.cultivations
       .map((cultivation) => {
         const unlocked = ctx.isUnlocked("cultivations", cultivation.id);
         const level = ctx.metaState.progression.cultivations[cultivation.id] || 0;
@@ -674,7 +1007,7 @@ export function createHomeRenderers(getContext) {
 
   function renderFacilitiesTab() {
     const ctx = getContext();
-    return `${ctx.renderHomeBanner("facilities")}<div class="home-grid">${ctx.metaConfig.facilities
+    return `${ctx.renderHomeBanner("facilities")}<section class="home-card facilities-overview-card"${ctx.uiPanelAttrs("facilities", "overview")}><div class="build-preview-head"><h2>洞府设施</h2><small>补天赋槽、经济和高阶材料产出</small></div><p>设施负责长期成长，先看当前章节真正卡住的槽位，再决定升蒲团、丹房、锻炉还是雷池。</p>${semanticCta(ctx, { action: "applyRecommendation", domAction: "apply-chapter-recommendation", label: "套用推荐", state: "emphasis", kind: "primary" })}</section><div class="home-grid">${ctx.metaConfig.facilities
       .map((facility) => {
         const level = ctx.metaState.progression.facilities[facility.id] || 0;
         const maxed = level >= facility.maxLevel;
@@ -698,8 +1031,11 @@ export function createHomeRenderers(getContext) {
   }
 
   return {
+    home: renderHomeTab,
+    more: renderMoreTab,
     mobileHomeLanding: renderMobileHomeLanding,
     mobileHomeMore: renderMobileHomeMore,
+    mobileChapterModal: renderMobileChapterModal,
     chapters: renderChapterTab,
     materials: renderMaterialsTab,
     journey: renderJourneyTab,

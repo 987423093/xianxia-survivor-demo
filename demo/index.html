@@ -129,14 +129,15 @@
           </header>
           <div id="mobileHomeNav" class="mobile-home-nav" aria-label="移动端洞府主入口">
             <div class="mobile-home-nav-main">
-              <button data-section="home" type="button">首页</button>
-              <button data-section="build" type="button">构筑</button>
-              <button data-section="quests" type="button">悬赏</button>
-              <button data-section="chapters" type="button">章节</button>
+              <button class="mobile-shell-nav-btn" data-section="home" type="button">首页</button>
+              <button class="mobile-shell-nav-btn" data-section="build" type="button">构筑</button>
+              <button class="mobile-shell-nav-btn" data-section="quests" type="button">悬赏</button>
+              <button id="mobileHomeMoreBtn" class="secondary mobile-home-more-btn mobile-shell-nav-btn" data-section="more" type="button">更多</button>
             </div>
-            <button id="mobileHomeMoreBtn" class="secondary mobile-home-more-btn" data-section="more" type="button">更多</button>
           </div>
           <nav id="homeTabs" class="home-tabs" aria-label="洞府页签">
+            <button data-tab="home" type="button">首页</button>
+            <button data-tab="more" type="button">更多</button>
             <button data-tab="chapters" type="button">章节</button>
             <button data-tab="start" type="button">开局</button>
             <button data-tab="journey" type="button">历练</button>
@@ -150,23 +151,7 @@
           </nav>
           <section id="mobileHomeLanding" class="mobile-home-landing hidden" aria-hidden="true"></section>
           <section id="homeContent" class="home-content"></section>
-          <footer class="home-actions">
-            <div class="home-primary-actions">
-              <button id="startRunBtn" type="button">入世斩妖</button>
-              <button id="closeHomeBtn" type="button">返回战斗</button>
-            </div>
-            <div class="save-tools" aria-label="存档工具">
-              <button id="saveToolsToggleBtn" class="secondary save-tools-toggle" type="button" aria-expanded="false">存档工具</button>
-              <div id="saveToolsBody" class="save-tools-body">
-                <div>
-                  <button id="exportSaveBtn" class="secondary" type="button">导出存档</button>
-                  <button id="importSaveBtn" class="secondary" type="button">导入存档</button>
-                </div>
-                <textarea id="saveDataBox" aria-label="存档 JSON" placeholder="导出的存档会显示在这里，也可以粘贴 JSON 后导入"></textarea>
-                <small id="saveStatus" aria-live="polite"></small>
-              </div>
-            </div>
-          </footer>
+          <section id="chapterQuickModal" class="home-inline-modal hidden" aria-hidden="true" aria-label="章节情报"></section>
         </div>
       </div>
       <div class="hint">

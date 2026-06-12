@@ -1,62 +1,155 @@
 # 11 image2 资产管线
 
-## 目标形态
+## 目标
 
-资产管线负责稳定生成、处理、检查和接入 AI 图片。它必须是项目本地流程，不能把 API key 或私有配置写进仓库。
+这套管线负责把洞府 UI 从“CSS 渐变主导”迁到“语义化图片资产主导”：
 
-## 当前实现
+- 12 个洞府页签横幅统一收口到 `uiAssets.tabs`
+- 首页 / 更多页 / 章节页关键功能块收口到 `uiAssets.panels`
+- 关键动作按钮收口到 `uiAssets.buttons`
+- 其余 9 个页签至少要走同一套 `uiAssets` 协议，并在缺图时安全回退
 
-状态：已完成
+运行时不直接依赖 `image2`，只依赖本地静态文件和主题映射。
 
-当前目录：
+## 目录与职责
 
 | 路径 | 用途 |
 | --- | --- |
-| `assets/image2-prompts/xianxia/` | prompt 文件 |
-| `assets/generated/xianxia/raw/` | image2 raw 候选 |
-| `demo/assets/xianxia/` | Demo 接入资产 |
-| `scripts/generate-xianxia-missing-assets.mjs` | 调用 image2 |
-| `scripts/prepare-xianxia-assets.mjs` | 拷贝和抠白底 |
-| `scripts/check-xianxia-assets.mjs` | 尺寸和 alpha 检查 |
+| `assets/image2-prompts/xianxia/ui-assets.manifest.json` | UI 资产主清单，维护 tabs / panels / buttons |
+| `assets/image2-prompts/xianxia/ui-shared-style.txt` | 统一国风 UI 风格约束 |
+| `assets/image2-prompts/xianxia/*.txt` | 具体 prompt 文件 |
+| `assets/generated/xianxia/raw/` | `image2` 原始候选输出 |
+| `demo/assets/xianxia/` | Demo 运行时读取的正式资源 |
+| `demo/src/theme.js` | `uiAssets` 显式映射与回退策略 |
+| `demo/src/home/ui-assets.js` | 运行时 resolver、预加载、HTML 属性拼装 |
+| `scripts/generate-xianxia-missing-assets.mjs` | 读取 manifest 调用 `image2` |
+| `scripts/prepare-xianxia-assets.mjs` | 把 raw 处理到 demo 目录 |
+| `scripts/check-xianxia-assets.mjs` | 检查尺寸、alpha、存在性 |
+| `scripts/seed-xianxia-ui-fallbacks.mjs` | 缺少正式 UI 图时生成占位回退图 |
 
-当前命令：
+## 运行时协议
+
+`theme.meta.uiAssets` 是洞府 UI 资产唯一入口，按三层拆分：
+
+```js
+uiAssets: {
+  tabs: {},
+  panels: {},
+  buttons: {},
+  panelFallbacks: {},
+  buttonFallbacks: {}
+}
+```
+
+约束：
+
+- `tabs` 只管页签横幅
+- `panels` 只管功能块 / 卡片 / 页头主模块
+- `buttons` 只管动作语义按钮，不再用 `primary/secondary` 作为唯一皮肤主键
+- `panelFallbacks` / `buttonFallbacks` 只声明“缺图退到哪一类共享视觉”，不再退回纯 CSS 渐变
+
+## 当前首批覆盖
+
+已进入 manifest 的正式产图范围：
+
+- 12 个页签横幅
+- 首页 5 个关键功能块
+- 更多页头部 + 8 个入口卡
+- 章节页总览 / 章节卡 / 掉落 / 奇遇 / Boss
+- `startRun` / `openMore` / `backHome` / `openChapters` / `openBuild` / `openQuests` / `applyRecommendation` / `enterDetail` / `returnBattle` / `saveTools`
+
+已接入运行时语义协议、但当前复用第一批底图的页签主模块：
+
+- `start.overview`
+- `journey.hero`
+- `materials.overview`
+- `quests.overview`
+- `bestiary.hero`
+- `talents.overview`
+- `artifacts.overview`
+- `cultivation.overview`
+- `facilities.overview`
+
+这部分后续可以继续补专属 prompt 与正式底图，不需要改运行时代码结构。
+
+## 生成流程
+
+### 1. 先补或更新 prompt / manifest
+
+如果新增一个 panel / button：
+
+1. 在 `assets/image2-prompts/xianxia/` 新建 prompt
+2. 在 `ui-assets.manifest.json` 增加定义
+3. 在 `demo/src/theme.js` 补 `uiAssets` 映射
+
+### 2. 跑两批生成
+
+页面横幅与功能块：
 
 ```bash
-npm run assets:generate -- --timeout 600 --quality high
+npm run assets:generate:ui -- --group tabs,panels --n 2 --concurrency 2 --quality high --timeout 600
+```
+
+按钮：
+
+```bash
+npm run assets:generate:buttons -- --group buttons --n 2 --concurrency 2 --quality high --timeout 600
+```
+
+说明：
+
+- `--n 2` 表示每个主题先出 2 个候选
+- `--concurrency 2` 表示单个主题候选并发
+- 当前脚本按 manifest 读取，不需要再手改三份硬编码数组
+
+### 3. 处理与落盘
+
+```bash
 npm run assets:prepare
+npm run assets:check
+npm run assets:optimize
+```
+
+### 4. 缺图回退
+
+如果新加了 key 但正式图还没生成：
+
+```bash
+npm run assets:seed-ui-fallbacks
+```
+
+这会把共享按钮壳 / 共享洞府底图缩放成占位图，保证运行时不会出现透明破图。
+
+## 验证
+
+静态与协议：
+
+```bash
+npm run test:ui-assets
+npm run config:check
+```
+
+运行时与页面：
+
+```bash
+npm run test:mobile
+npm run smoke
+```
+
+资产完整性：
+
+```bash
 npm run assets:check
 ```
 
-当前已接入资产：
+## 回退原则
 
-- 地图、Boss、主角境界、敌人、法术、装备、拾取物。
-- 洞府背景、页签横幅、法宝图标、设施图标、方向图标。
+- 缺少 panel：先退 `panelFallbacks`，再退 `panels.shared.primary`
+- 缺少 button：先按动作语义退 `buttonFallbacks`，再退 `buttons.shared.primary/secondary`
+- CSS 只保留布局、尺寸、滤镜和最终兜底，不再承担主要视觉表达
 
-## 处理规则
+## 现状说明
 
-- 背景和横幅：保留 opaque。
-- 图标和角色：纯白背景生成，本地边缘连通抠白底。
-- 检查图标必须为 RGBA 且 alpha 范围 `0-255`。
-- 检查背景必须尺寸正确且 alpha `255-255`。
-
-## 当前缺口
-
-- 没有候选图人工选择 manifest。
-- 没有 contact sheet 自动生成常规流程。
-- 没有失败项自动重试。
-- 没有素材版本记录。
-
-## 后续计划
-
-- 增加 `assets/xianxia-manifest.json` 记录选中候选。
-- 生成 contact sheet 方便批量审图。
-- 失败项按清单自动补跑。
-- 加入材料图标和章节奖励图标。
-
-## 验收标准
-
-- 新增资产能通过 generate/prepare/check 三步进入 Demo。
-- image2 key 不进入项目文件。
-- 运行时只读本地静态图片。
-- 图片缺失时不显示破图。
-
+- 当前项目已经完成 `uiAssets` 协议、resolver、预加载、测试和首批运行时接线
+- 占位 UI 图仍然允许存在，但它们只是临时桥接层，不是最终美术结果
+- 后续如果要把其余 9 个页签的主模块替换成专属底图，只需要补 prompt / manifest / theme 映射，不需要重写渲染结构

@@ -46,6 +46,7 @@ export function createQuestsGoals({
   challengeRewardSummary,
   chapterDropEstimate,
   addText,
+  uiButtonAttrs = () => "",
 }) {
   const metaState = new Proxy({}, {
     get(_target, key) {
@@ -377,7 +378,7 @@ export function createQuestsGoals({
                 </div>
                 <small>${combo.missingText} · ${combo.context}</small>
                 <div class="combo-route-actions">
-                  <button data-action="apply-combo" data-id="${combo.id}" ${combo.plan.usable ? "" : "disabled"}>${combo.ready ? "重套组合" : "套用组合"}</button>
+                  <button class="mobile-shell-cta-btn mobile-shell-cta-btn-primary" data-action="apply-combo" data-id="${combo.id}" type="button"${uiButtonAttrs("applyRecommendation", combo.ready ? "active" : "emphasis", "primary")} ${combo.plan.usable ? "" : "disabled"}>${combo.ready ? "重套组合" : "套用组合"}</button>
                   <button data-action="open-tab" data-tab="bestiary" type="button">看图鉴</button>
                   <button data-action="open-tab" data-tab="quests" type="button">做悬赏</button>
                 </div>

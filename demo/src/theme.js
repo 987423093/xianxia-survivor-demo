@@ -754,6 +754,198 @@ export const xianxiaTheme = {
         bestiary: "home-tab-bestiary.png",
       },
     },
+    uiAssets: {
+      navs: {
+        home: {
+          idle: "nav-more-idle.png",
+          active: "nav-more-active.png",
+        },
+        build: {
+          idle: "nav-more-idle.png",
+          active: "nav-more-active.png",
+        },
+        quests: {
+          idle: "nav-more-idle.png",
+          active: "nav-more-active.png",
+        },
+        chapters: {
+          idle: "nav-more-idle.png",
+          active: "nav-more-active.png",
+        },
+        more: {
+          idle: "nav-more-idle.png",
+          active: "nav-more-active.png",
+        },
+      },
+      tabs: {
+        home: "home-tab-home.png",
+        more: "home-tab-more.png",
+        chapters: "home-tab-chapters.png",
+        start: "home-tab-start.png",
+        journey: "home-tab-journey.png",
+        materials: "home-tab-materials.png",
+        quests: "home-tab-quests.png",
+        bestiary: "home-tab-bestiary.png",
+        talents: "home-tab-talents.png",
+        artifacts: "home-tab-artifacts.png",
+        cultivation: "home-tab-cultivation.png",
+        facilities: "home-tab-facilities.png",
+      },
+      panels: {
+        home: {
+          dailyDecree: "panel-home-daily-decree.png",
+          continueRun: "panel-home-continue-run.png",
+          currentBuild: "panel-home-current-build.png",
+          claimableRewards: "panel-home-claimable-rewards.png",
+          chapterRecommendation: "panel-home-chapter-recommendation.png",
+        },
+        more: {
+          header: "panel-more-header.png",
+          journey: "panel-more-entry-journey.png",
+          materials: "panel-more-entry-materials.png",
+          quests: "panel-more-entry-quests.png",
+          bestiary: "panel-more-entry-bestiary.png",
+          talents: "panel-more-entry-talents.png",
+          artifacts: "panel-more-entry-artifacts.png",
+          cultivation: "panel-more-entry-cultivation.png",
+          facilities: "panel-more-entry-facilities.png",
+        },
+        chapters: {
+          overview: "panel-chapters-overview.png",
+          chapterCard: "panel-chapters-card.png",
+          drops: "panel-chapters-drops.png",
+          encounter: "panel-chapters-encounter.png",
+          boss: "panel-chapters-boss.png",
+        },
+        start: {
+          overview: "panel-home-current-build.png",
+        },
+        journey: {
+          hero: "panel-more-entry-journey.png",
+        },
+        materials: {
+          overview: "panel-more-entry-materials.png",
+        },
+        quests: {
+          overview: "panel-more-entry-quests.png",
+        },
+        bestiary: {
+          hero: "panel-more-entry-bestiary.png",
+        },
+        talents: {
+          overview: "panel-more-entry-talents.png",
+        },
+        artifacts: {
+          overview: "panel-more-entry-artifacts.png",
+        },
+        cultivation: {
+          overview: "panel-more-entry-cultivation.png",
+        },
+        facilities: {
+          overview: "panel-more-entry-facilities.png",
+        },
+        shared: {
+          primary: "home-dongfu-bg.png",
+        },
+      },
+      panelFallbacks: {
+        start: { overview: "primary" },
+        journey: { hero: "primary" },
+        materials: { overview: "primary" },
+        quests: { overview: "primary" },
+        bestiary: { hero: "primary" },
+        talents: { overview: "primary" },
+        artifacts: { overview: "primary" },
+        cultivation: { overview: "primary" },
+        facilities: { overview: "primary" },
+      },
+      buttons: {
+        startRun: {
+          idle: "btn-start-run-idle.png",
+          active: "btn-start-run-active.png",
+          emphasis: "btn-start-run-emphasis.png",
+        },
+        openMore: {
+          idle: "btn-back-home-idle.png",
+          active: "btn-back-home-active.png",
+          emphasis: "btn-back-home-emphasis.png",
+        },
+        backHome: {
+          idle: "btn-back-home-idle.png",
+          active: "btn-back-home-active.png",
+          emphasis: "btn-back-home-emphasis.png",
+        },
+        openChapters: {
+          idle: "btn-back-home-idle.png",
+          active: "btn-back-home-active.png",
+          emphasis: "btn-back-home-emphasis.png",
+        },
+        openBuild: {
+          idle: "btn-back-home-idle.png",
+          active: "btn-back-home-active.png",
+          emphasis: "btn-back-home-emphasis.png",
+        },
+        openQuests: {
+          idle: "btn-back-home-idle.png",
+          active: "btn-back-home-active.png",
+          emphasis: "btn-back-home-emphasis.png",
+        },
+        applyRecommendation: {
+          idle: "btn-back-home-idle.png",
+          active: "btn-back-home-active.png",
+          emphasis: "btn-back-home-emphasis.png",
+        },
+        enterDetail: {
+          idle: "btn-back-home-idle.png",
+          active: "btn-back-home-active.png",
+          emphasis: "btn-back-home-emphasis.png",
+        },
+        returnBattle: {
+          idle: "btn-back-home-idle.png",
+          active: "btn-back-home-active.png",
+          emphasis: "btn-back-home-emphasis.png",
+        },
+        saveTools: {
+          idle: "btn-back-home-idle.png",
+          active: "btn-back-home-active.png",
+          emphasis: "btn-back-home-emphasis.png",
+        },
+        shared: {
+          primary: {
+            idle: "ui-button-primary-1.png",
+            active: "ui-button-primary-2.png",
+            emphasis: "ui-button-primary-2.png",
+          },
+          secondary: {
+            idle: "ui-button-secondary-1.png",
+            active: "ui-button-secondary-2.png",
+            emphasis: "ui-button-secondary-2.png",
+          },
+          navIdle: {
+            idle: "ui-button-nav-idle-1.png",
+            active: "ui-button-nav-idle-2.png",
+            emphasis: "ui-button-nav-idle-2.png",
+          },
+          navActive: {
+            idle: "ui-button-nav-active-1.png",
+            active: "ui-button-nav-active-2.png",
+            emphasis: "ui-button-nav-active-2.png",
+          },
+        },
+      },
+      buttonFallbacks: {
+        startRun: "primary",
+        applyRecommendation: "primary",
+        openMore: "secondary",
+        backHome: "secondary",
+        openChapters: "secondary",
+        openBuild: "secondary",
+        openQuests: "secondary",
+        enterDetail: "secondary",
+        returnBattle: "secondary",
+        saveTools: "secondary",
+      },
+    },
     styleTags: {
       sword: { name: "飞剑", color: "#b9f3ff" },
       fire: { name: "灵火", color: "#ffb46b" },
@@ -1083,6 +1275,8 @@ export const xianxiaTheme = {
         name: "玄石古阵",
         desc: "石碑与符文裂隙交错的古阵。",
         background: "map-stone-array.png",
+        homePreview: "home-preview-stone-array.png",
+        mobileRunDashboard: "mobile-run-dashboard-stone-array.png",
         fallbackBackground: "battle-map.png",
         unlock: { type: "chapterClear", chapterId: "cloud-bamboo-valley" },
         enemyMods: { hp: 1.18, speed: 1.04, damage: 1.08 },
@@ -1242,6 +1436,8 @@ export const xianxiaTheme = {
         name: "血煞荒原",
         desc: "赤黑妖气荒原，血雾与裂谷吞没灵脉。",
         background: "map-blood-wasteland.png",
+        homePreview: "home-preview-blood-wasteland.png",
+        mobileRunDashboard: "mobile-run-dashboard-blood-wasteland.png",
         fallbackBackground: "battle-map.png",
         unlock: { type: "chapterClear", chapterId: "stone-array" },
         enemyMods: { hp: 1.42, speed: 1.08, damage: 1.16 },
@@ -1399,6 +1595,8 @@ export const xianxiaTheme = {
         name: "雷劫天门",
         desc: "高空天门平台，金紫雷纹在脚下奔涌。",
         background: "map-thunder-gate.png",
+        homePreview: "home-preview-thunder-gate.png",
+        mobileRunDashboard: "mobile-run-dashboard-thunder-gate.png",
         fallbackBackground: "battle-map.png",
         unlock: { type: "chapterClear", chapterId: "blood-wasteland" },
         enemyMods: { hp: 1.72, speed: 1.12, damage: 1.24 },

@@ -10,11 +10,12 @@ export function createHomeState({
   debugTargetMaterialDifficulty = "",
 } = {}) {
   return {
-    activeTab: "chapters",
+    activeTab: "home",
     previousGameState: "playing",
     mobileGrowthOpen: false,
     mobileHomeSection: "home",
     mobileHomeMoreTab: "more",
+    mobileChapterDetailId: "",
     saveToolsOpen: false,
     focusedMaterials: [],
     preloadedTabs: new Set(),

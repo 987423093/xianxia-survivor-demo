@@ -41,7 +41,7 @@ export function createHomeActionHandler({
       return;
     }
     if (tab === "chapters") {
-      homeState.mobileHomeSection = "chapters";
+      homeState.mobileHomeSection = "home";
       return;
     }
     if (tab === "home" || tab === "mobile-home") {
@@ -160,12 +160,38 @@ export function createHomeActionHandler({
     if (action === "open-mobile-home-section") {
       const section = target.dataset.section || "home";
       homeState.mobileHomeSection = section;
-      if (section === "home") homeState.activeTab = "chapters";
+      if (section === "home") homeState.activeTab = "home";
       if (section === "build") homeState.activeTab = "start";
       if (section === "quests") homeState.activeTab = "quests";
       if (section === "chapters") homeState.activeTab = "chapters";
       if (section === "more") homeState.mobileHomeMoreTab = "more";
       homeController.renderHomePanel();
+      return;
+    }
+
+    if (action === "open-chapter-modal") {
+      homeController.openChapterQuickModal?.();
+      return;
+    }
+
+    if (action === "close-chapter-modal") {
+      homeController.closeChapterQuickModal?.();
+      return;
+    }
+
+    if (action === "preview-mobile-chapter") {
+      setSelectedChapterForBuild(id);
+      homeState.mobileChapterDetailId = id;
+      if (getUiMode() === "mobile") {
+        homeState.mobileHomeSection = "home";
+        homeState.activeTab = "chapters";
+        homeController.closeChapterQuickModal?.();
+        homeController.renderHomePanel();
+      } else {
+        homeController.openChapterQuickModal?.();
+      }
+      saveMetaState();
+      homeController.updateQuestBadges();
       return;
     }
 
@@ -185,7 +211,21 @@ export function createHomeActionHandler({
       return;
     }
 
-    if (action === "select-chapter") setSelectedChapterForBuild(id);
+    if (action === "select-mobile-preset") {
+      applyPreset(id);
+      homeState.mobileHomeSection = "home";
+      homeState.activeTab = "start";
+    }
+    if (action === "select-chapter") {
+      setSelectedChapterForBuild(id);
+      homeState.mobileChapterDetailId = id;
+      if (getUiMode() === "mobile") {
+        homeState.mobileHomeSection = "home";
+        homeState.activeTab = "chapters";
+        homeController.closeChapterQuickModal?.();
+        homeController.renderHomePanel();
+      }
+    }
     if (action === "farm-material-route") applyMaterialRoute(target, "farm");
     if (action === "unlock-material-route") applyMaterialRoute(target, "unlock");
     if (action === "preview-material-difficulty") homeState.materialPreviewDifficultyId = target.dataset.difficulty || "";

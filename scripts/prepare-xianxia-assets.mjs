@@ -3,11 +3,13 @@ import { existsSync } from "node:fs";
 import { basename, join } from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import { flattenUiOutputs, loadUiAssetManifest } from "./lib/xianxia-ui-assets.mjs";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
 const rawDir = join(root, "assets/generated/xianxia/raw");
 const demoDir = join(root, "demo/assets/xianxia");
 const python = "/Users/zhoutao/miniconda3/bin/python3";
+const uiManifest = loadUiAssetManifest(root);
 
 const maps = ["map-stone-array.png", "map-blood-wasteland.png", "map-thunder-gate.png"];
 const homeScenes = [
@@ -74,6 +76,10 @@ const uiSheetSlices = [
   "ui-route.png",
 ];
 
+const uiAssets = flattenUiOutputs(uiManifest);
+const uiButtonFiles = uiAssets.filter((asset) => asset.type === "button" || asset.type === "nav").map((asset) => asset.output);
+const uiOtherFiles = uiAssets.filter((asset) => asset.type !== "button" && asset.type !== "nav").map((asset) => asset.output);
+
 await mkdir(demoDir, { recursive: true });
 
 function sourceFor(file) {
@@ -92,6 +98,17 @@ for (const file of maps) {
 for (const file of homeScenes) {
   const source = sourceFor(file);
   if (existsSync(source)) await copyFile(source, join(demoDir, file));
+}
+
+for (const file of uiOtherFiles) {
+  const source = sourceFor(file);
+  if (existsSync(source)) await copyFile(source, join(demoDir, file));
+}
+
+for (const file of uiButtonFiles) {
+  const source = sourceFor(file);
+  if (!existsSync(source)) continue;
+  processWhiteBackgroundSprite(source, join(demoDir, file));
 }
 
 const uiSheetSource = sourceFor(uiSheet);
@@ -216,6 +233,7 @@ const existing = await readdir(demoDir);
 console.log(JSON.stringify({
   copiedMaps: maps.filter((file) => existing.includes(file)),
   copiedHomeScenes: homeScenes.filter((file) => existing.includes(file)),
+  copiedUiPanelsAndButtons: [...uiOtherFiles, ...uiButtonFiles].filter((file) => existing.includes(file)),
   processedUiIcons: uiSheetSlices.filter((file) => existing.includes(file)),
   processedBosses: bosses.filter((file) => existing.includes(file)),
   processedHomeIcons: homeIcons.filter((file) => existing.includes(file)),

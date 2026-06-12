@@ -5,6 +5,7 @@ import { createHomeActionHandler } from "./home/actions.js";
 import { createHomeController } from "./home/controller.js";
 import { createHomeRenderers } from "./home/renderers.js";
 import { createHomeState } from "./home/state.js";
+import { createHomeUiAssets } from "./home/ui-assets.js";
 import { createMetaStore } from "./meta-store.js";
 import { createQuestsGoals } from "./quests-goals.js";
 import { createRenderer } from "./renderer.js";
@@ -32,6 +33,8 @@ const theme = themes[requestedTheme] || themes.xianxia;
 const MOBILE_MAX_WIDTH = 720;
 const MOBILE_HOME_MORE_CLASS = "mobile-home-more";
 const HOME_TAB_GLYPHS = {
+  home: "令",
+  more: "更",
   chapters: "章",
   start: "启",
   journey: "历",
@@ -119,6 +122,7 @@ const ui = {
   mobileHomeNav: document.querySelector("#mobileHomeNav"),
   mobileHomeMoreBtn: document.querySelector("#mobileHomeMoreBtn"),
   mobileHomeLanding: document.querySelector("#mobileHomeLanding"),
+  chapterQuickModal: document.querySelector("#chapterQuickModal"),
   homeTabs: document.querySelector("#homeTabs"),
   homeContent: document.querySelector("#homeContent"),
   startRunBtn: document.querySelector("#startRunBtn"),
@@ -159,6 +163,7 @@ const {
   preloadCriticalAssets,
   preloadBattleDeferredAssets,
   preloadHomeAssetsForTab,
+  preloadNamedAssets,
   waitForAssetKeys,
   drawImageCentered,
   drawSpriteFitted,
@@ -166,6 +171,7 @@ const {
 const { optimizedAssetUrl, thumbnailAsset, homeImage } = createImageHtmlHelpers({ theme, optimizedAssetFile });
 
 const metaConfig = theme.meta || null;
+const homeUiAssets = createHomeUiAssets({ metaConfig, optimizedAssetUrl });
 const homeState = createHomeState({
   debugTargetMaterial,
   debugTargetMaterialMode,
@@ -285,11 +291,12 @@ function currentUiMode() {
 }
 
 function defaultHomeTab() {
-  return currentUiMode() === "mobile" ? "home" : "chapters";
+  return "home";
 }
 
 function syncMobileHomeShellState() {
   ui.homeShell?.classList.toggle(MOBILE_HOME_MORE_CLASS, homeState.mobileHomeSection === "more");
+  decorateMobileHomeNav();
 }
 
 function syncMobileBattleDrawer() {
@@ -319,6 +326,8 @@ function updateUiMode() {
   }
   syncMobileHomeShellState();
   syncMobileBattleDrawer();
+  decorateSemanticHomeButtons();
+  decorateMobileHomeNav();
 }
 
 function toggleGrowthPanel(force) {
@@ -362,8 +371,45 @@ function decorateHomeTabs() {
   }
 }
 
+function decorateSemanticHomeButtons() {
+  const rows = [
+    { element: ui.startRunBtn, action: "startRun", state: "emphasis", kind: "primary" },
+    { element: ui.closeHomeBtn, action: "returnBattle", state: "idle", kind: "secondary" },
+    { element: ui.saveToolsToggleBtn, action: "saveTools", state: homeState.saveToolsOpen ? "active" : "idle", kind: "secondary" },
+  ];
+  for (const row of rows) {
+    if (!row.element) continue;
+    row.element.classList.add("mobile-shell-cta-btn", `mobile-shell-cta-btn-${row.kind}`);
+    const attrs = homeUiAssets.buttonAttrs(row.action, row.state, row.kind);
+    const styleMatch = attrs.match(/style="([^"]*)"/);
+    const actionMatch = attrs.match(/data-ui-action="([^"]*)"/);
+    const stateMatch = attrs.match(/data-ui-action-state="([^"]*)"/);
+    const kindMatch = attrs.match(/data-ui-action-kind="([^"]*)"/);
+    if (styleMatch?.[1]) row.element.setAttribute("style", styleMatch[1]);
+    else row.element.removeAttribute("style");
+    if (actionMatch?.[1]) row.element.dataset.uiAction = actionMatch[1];
+    if (stateMatch?.[1]) row.element.dataset.uiActionState = stateMatch[1];
+    if (kindMatch?.[1]) row.element.dataset.uiActionKind = kindMatch[1];
+  }
+}
+
+function decorateMobileHomeNav() {
+  if (!ui.mobileHomeNav) return;
+  for (const button of ui.mobileHomeNav.querySelectorAll("button[data-section]")) {
+    const state = button.dataset.section === homeState.mobileHomeSection ? "active" : "idle";
+    const attrs = homeUiAssets.navAttrs(button.dataset.section, state);
+    const styleMatch = attrs.match(/style="([^"]*)"/);
+    const sectionMatch = attrs.match(/data-ui-nav="([^"]*)"/);
+    const stateMatch = attrs.match(/data-ui-nav-state="([^"]*)"/);
+    if (styleMatch?.[1]) button.setAttribute("style", styleMatch[1]);
+    else button.removeAttribute("style");
+    if (sectionMatch?.[1]) button.dataset.uiNav = sectionMatch[1];
+    if (stateMatch?.[1]) button.dataset.uiNavState = stateMatch[1];
+  }
+}
+
 function renderHomeBanner(tab) {
-  const asset = metaConfig?.homeAssets?.tabs?.[tab];
+  const asset = homeUiAssets.tabBanner(tab);
   if (!asset) return "";
   return `<div class="home-banner">${homeImage(asset, "", "home-banner-img")}</div>`;
 }
@@ -540,6 +586,7 @@ buildPlanner = createBuildPlanner({
   activeRunBlessingRows: (...args) => runEvents?.activeRunBlessingRows?.(...args),
   getQuestState: () => questState,
   addText: runtime.addText,
+  uiButtonAttrs: homeUiAssets.buttonAttrs,
 });
 
 const {
@@ -694,6 +741,7 @@ questsGoals = createQuestsGoals({
   challengeRewardSummary,
   chapterDropEstimate,
   addText: runtime.addText,
+  uiButtonAttrs: homeUiAssets.buttonAttrs,
 });
 
 const {
@@ -771,6 +819,9 @@ function getHomeRenderContext() {
     homeState,
     clamp,
     homeImage,
+    optimizedAssetUrl,
+    uiPanelAttrs: homeUiAssets.panelAttrs,
+    uiButtonAttrs: homeUiAssets.buttonAttrs,
     uiActionIcon,
     thumbnailAsset,
     renderHomeBanner,
@@ -781,6 +832,8 @@ function getHomeRenderContext() {
     formatCost,
     formatCostTokens,
     isUnlocked,
+    currencyName,
+    chapterDropEstimate,
     chapterRewardChipRows,
     chapterRewardHighlights,
     renderRunEventPreview,
@@ -854,6 +907,8 @@ homeController = createHomeController({
   optimizedAssetUrl,
   assetBase: theme.assetBase || "",
   preloadHomeAssetsForTab,
+  preloadHomeUiAssetsForTab: (tab) => preloadNamedAssets(homeUiAssets.preloadRowsForTab(tab)),
+  preloadMobileNavAssets: () => preloadNamedAssets(homeUiAssets.preloadMobileNavRows()),
   claimableQuestCount,
   setQuestBadge,
   renderers: homeRenderers,
@@ -1127,6 +1182,8 @@ function scheduleDeferredLoads() {
 
 async function initializeApp() {
   decorateHomeTabs();
+  decorateSemanticHomeButtons();
+  decorateMobileHomeNav();
   updateUiMode();
   resize();
 
@@ -1179,6 +1236,8 @@ function loop(now) {
 window.addEventListener("resize", () => {
   resize();
   updateUiMode();
+  decorateSemanticHomeButtons();
+  decorateMobileHomeNav();
   syncMobileBattleDrawer();
   homeController?.syncSaveToolsState?.();
   if (!ui.homePanel?.classList.contains("hidden")) homeController?.renderHomePanel?.();
@@ -1287,6 +1346,7 @@ ui.exportSaveBtn?.addEventListener("click", exportMetaSave);
 ui.importSaveBtn?.addEventListener("click", importMetaSave);
 ui.saveToolsToggleBtn?.addEventListener("click", () => {
   homeState.saveToolsOpen = !homeState.saveToolsOpen;
+  decorateSemanticHomeButtons();
   homeController?.syncSaveToolsState?.();
 });
 ui.mobileHomeNav?.addEventListener("click", (event) => {
@@ -1322,6 +1382,12 @@ ui.mobileHomeLanding?.addEventListener("click", (event) => {
   const button = event.target.closest("button[data-action]");
   if (!button || button.disabled) return;
   handleHomeAction(button);
+  syncMobileHomeShellState();
+});
+ui.chapterQuickModal?.addEventListener("click", (event) => {
+  const target = event.target.closest("[data-action]");
+  if (!target || target.disabled) return;
+  handleHomeAction(target);
   syncMobileHomeShellState();
 });
 ui.mobileDrawerCloseBtn?.addEventListener("click", () => toggleGrowthPanel(false));
